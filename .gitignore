@@ -1,2 +1,5 @@
-.venv/
-site/
+.generated_docs
+admin/
+man/
+user-guide/
+yaml/
