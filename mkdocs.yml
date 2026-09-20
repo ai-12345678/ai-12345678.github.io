@@ -1,0 +1,57 @@
+site_name: 技术文档
+site_description: Kubernetes、Linux 与基础设施学习笔记
+site_url: https://ai-12345678.github.io/docs/
+repo_url: https://github.com/ai-12345678/docs
+repo_name: ai-12345678/docs
+
+# 文档源码直接放在仓库根目录，不保留额外的 docs/ 层级。
+docs_dir: .
+# 必须位于 docs_dir 之外；GitHub Actions 构建时会通过参数覆盖此路径。
+site_dir: ../docs-site
+use_directory_urls: true
+strict: true
+
+exclude_docs: |
+  .git/
+  .github/
+  .gitignore
+  .venv/
+  mkdocs.yml
+  requirements.txt
+  README.md
+  OWNERS
+  site/
+
+nav:
+  - 首页: index.md
+  - Kubernetes:
+      - Context: kubernetes/context.md
+      - 扩展体系: kubernetes/extensions.md
+      - Deployment 创建时序: kubernetes/deployment-create-sequence.md
+      - Pod 创建与调度时序: kubernetes/pod-create-scheduling-sequence.md
+  - Linux:
+      - SSH ProxyCommand + Auth: linux/ssh-proxycommand-auth-architecture.md
+      - 下载文件与 chmod +x: linux/chmod-x-download-permissions.md
+      - Herdr 使用笔记: linux/herdr-usage.md
+      - Postman CLI 旧 Linux 兼容方案: linux/postman-cli-old-linux-compatibility.md
+
+theme:
+  name: mkdocs
+  language: zh
+
+plugins:
+  - search:
+      lang:
+        - zh
+        - en
+
+markdown_extensions:
+  - fenced_code
+  - tables
+  - sane_lists
+  - toc:
+      permalink: true
+
+extra_javascript:
+  - assets/javascripts/mermaid.js
+
