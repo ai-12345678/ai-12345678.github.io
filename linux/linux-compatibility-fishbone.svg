@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <style>
+      .title{font:700 50px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#0b3b75}
+      .subtitle{font:600 23px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#173b67}
+      .h{font:700 30px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+      .sh{font:700 23px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+      .body{font:500 19px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#15345b}
+      .small{font:500 17px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#15345b}
+      .white{fill:#fff}
+      .green{fill:#0b8f4d}.orange{fill:#f06a13}.blue{fill:#0b5cab}.purple{fill:#6336c5}
+      .panel{fill:#fff;stroke:#d7e1ec;stroke-width:2}
+      .gpanel{fill:#effbf4;stroke:#4ab87c;stroke-width:2}
+      .bpanel{fill:#eef6ff;stroke:#5aa1ef;stroke-width:2}
+      .opanel{fill:#fff6ed;stroke:#f0a05d;stroke-width:2}
+      .conclusion{fill:#f5f9ff;stroke:#7eb0ec;stroke-width:2}
+    </style>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#0b8f4d"/>
+    </marker>
+    <marker id="arrowOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#f06a13"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#ffffff"/>
+  <text x="800" y="70" text-anchor="middle" class="title">Linux 生态兼容性鱼骨图</text>
+  <text x="800" y="110" text-anchor="middle" class="subtitle">back（旧）  ←  时间 / 版本方向  →  forward（新）</text>
+
+  <!-- spine -->
+  <line x1="180" y1="560" x2="1420" y2="560" stroke="#084f93" stroke-width="16"/>
+  <polygon points="55,560 180,495 180,625" fill="#084f93"/>
+  <polygon points="1545,560 1420,485 1420,635" fill="#084f93"/>
+  <text x="115" y="545" text-anchor="middle" class="h white">旧版本</text>
+  <text x="115" y="580" text-anchor="middle" class="sh white">(back)</text>
+  <text x="1485" y="545" text-anchor="middle" class="h white">新版本</text>
+  <text x="1485" y="580" text-anchor="middle" class="sh white">(forward)</text>
+
+  <!-- bones -->
+  <line x1="310" y1="560" x2="220" y2="240" stroke="#0b8f4d" stroke-width="7"/>
+  <line x1="750" y1="560" x2="650" y2="240" stroke="#0b5cab" stroke-width="7"/>
+  <line x1="1160" y1="560" x2="1070" y2="240" stroke="#f06a13" stroke-width="7"/>
+
+  <!-- kernel panel -->
+  <rect x="95" y="145" width="410" height="105" rx="18" class="gpanel"/>
+  <text x="130" y="190" class="h" fill="#063d24">Linux Kernel</text>
+  <text x="130" y="225" class="body">userspace ABI / syscall ABI</text>
+
+  <text x="115" y="300" class="sh green">→ 向后兼容（强）</text>
+  <text x="115" y="336" class="body">• 已有 syscall number、参数 ABI、语义尽量保持稳定</text>
+  <text x="115" y="368" class="body">• 旧 ld.so / glibc / 用户程序通常可运行在新内核</text>
+  <rect x="110" y="392" width="420" height="84" rx="12" fill="#e8f7ee"/>
+  <text x="128" y="423" class="small">例：Linux 2.6 基线构建的 ld.so / glibc，</text>
+  <text x="128" y="451" class="small">在相同 CPU 架构和用户态 ABI 下，通常可在 Linux 3.2 运行。</text>
+  <text x="115" y="510" class="sh orange">→ 向前兼容（有限）</text>
+  <text x="115" y="540" class="small">新程序若依赖旧内核没有的新 syscall，可能返回 ENOSYS。</text>
+
+  <!-- ld.so panel -->
+  <rect x="555" y="145" width="410" height="105" rx="18" class="bpanel"/>
+  <text x="590" y="190" class="h" fill="#084f93">ld.so / glibc</text>
+  <text x="590" y="225" class="body">动态链接器 / C 运行时</text>
+
+  <text x="575" y="300" class="sh green">→ 对旧动态 ELF：向后兼容为主</text>
+  <text x="575" y="336" class="body">• 新版 ld.so / glibc 通常继续支持旧 ELF ABI</text>
+  <text x="575" y="368" class="body">• 通过 GLIBC_x.x 符号版本机制保持兼容</text>
+  <text x="575" y="410" class="sh orange">→ 向前兼容（有限）</text>
+  <text x="575" y="446" class="body">• 旧 ld.so/glibc 不认识新 GLIBC_x.x 时会失败</text>
+  <text x="575" y="478" class="small">  典型错误：version 'GLIBC_x.x' not found</text>
+  <rect x="570" y="495" width="430" height="88" rx="12" fill="#eaf4ff"/>
+  <text x="588" y="526" class="small">条件场景：旧内核 + 高版本 glibc 也可能运行新二进制，</text>
+  <text x="588" y="554" class="small">前提是 glibc 兼容该旧内核，且程序未依赖缺失 syscall / 新特性。</text>
+
+  <!-- node panel -->
+  <rect x="1015" y="145" width="410" height="105" rx="18" class="opanel"/>
+  <text x="1050" y="190" class="h" fill="#8a3b08">Node / 用户程序</text>
+  <text x="1050" y="225" class="body">应用二进制</text>
+
+  <text x="1035" y="300" class="sh green">→ 旧二进制 → 新环境：通常可运行</text>
+  <text x="1035" y="336" class="body">• 依赖的 GLIBC_x.x / GLIBCXX_x.x 仍被提供即可</text>
+  <text x="1035" y="368" class="body">• CPU ISA 也必须兼容，例如避免过高 -march</text>
+  <text x="1035" y="410" class="sh orange">→ 新二进制 → 旧环境：有条件</text>
+  <text x="1035" y="446" class="body">• 可带匹配的高版本 ld.so + glibc/runtime</text>
+  <text x="1035" y="478" class="body">• 仍要满足旧内核实际提供的 syscall / 特性</text>
+  <text x="1035" y="510" class="small">• Node、postman-cli 等都可能出现这种部署方式</text>
+
+  <!-- directional examples -->
+  <rect x="105" y="650" width="1390" height="115" rx="18" class="panel"/>
+  <text x="135" y="690" class="sh blue">典型兼容方向</text>
+  <line x1="330" y1="710" x2="630" y2="710" stroke="#0b8f4d" stroke-width="5" marker-end="url(#arrowGreen)"/>
+  <text x="330" y="690" class="small">旧程序 / 旧 ld.so / 旧 glibc</text>
+  <text x="650" y="716" class="small green">新内核：通常可以</text>
+  <line x1="925" y1="710" x2="1225" y2="710" stroke="#f06a13" stroke-width="5" marker-end="url(#arrowOrange)"/>
+  <text x="925" y="690" class="small">新程序 / 新 runtime</text>
+  <text x="1245" y="716" class="small orange">旧内核：有条件</text>
+  <text x="330" y="747" class="small">原因：Linux Kernel 对 userspace ABI 以向后兼容为核心。</text>
+  <text x="925" y="747" class="small">条件：符号版本满足 + runtime 兼容旧内核 + 不依赖缺失 syscall。</text>
+
+  <!-- conclusions -->
+  <rect x="70" y="800" width="1460" height="165" rx="20" class="conclusion"/>
+  <text x="105" y="842" class="h" fill="#084f93">关键结论</text>
+  <text x="110" y="880" class="body">1. Linux Kernel 保持 userspace ABI 向后兼容，因此旧 ld.so / glibc / 用户程序通常可运行在新内核上。</text>
+  <text x="110" y="912" class="body">2. 新版 ld.so / glibc 对旧动态 ELF 二进制也以向后兼容为主；旧 runtime 对新符号则不保证。</text>
+  <text x="110" y="944" class="body">3. 新二进制不一定只能运行在新内核：若高版本 glibc 仍兼容旧内核，Node、postman-cli 等也可能在“旧内核 + 新 glibc”上运行。</text>
+</svg>
