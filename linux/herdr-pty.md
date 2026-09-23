@@ -29,6 +29,42 @@ TTY 层会按配置处理回显、按行输入和信号，不一定逐字节原�
 | 本地执行 `herdr --remote devbox` | 本地 | 本地 PTY ↔ SSH 桥接 ↔ 云端 Herdr server ↔ pane PTY |
 | 先 `ssh devbox`，再执行 `herdr` | 云端 | 本地 PTY ↔ 云端 SSH 登录 PTY ↔ Herdr client/server ↔ pane PTY |
 
+### 方式一：本地 Herdr Client 连接云端 Server
+
+执行 `herdr --remote devbox` 时，本地 Herdr Client 通过 SSH 启动远程 bridge。例如，远程可执行文件位于 `/home/work/.local/bin/herdr` 时，实际启动命令为：
+
+```bash
+ssh -T devbox 'exec /home/work/.local/bin/herdr remote-client-bridge'
+```
+
+以下泳道图将 SSH 客户端、云端 sshd 和 bridge 合并为一条传输泳道，展示输入与输出的完整路径：
+
+```mermaid
+sequenceDiagram
+    participant T as iTerm2 与本地 PTY
+    participant C as 本地 Herdr Client
+    participant B as SSH 通道与远程 bridge
+    participant S as 云端 Herdr Server
+    participant P as pane PTY 与应用
+    C->>B: ssh -T 启动 remote-client-bridge
+    B->>S: 建立协议连接
+    Note over B,S: SSH 不分配登录 PTY
+    Note over T,P: 输入
+    T->>C: iTerm2 写 master，Client 从 slave 读取
+    C->>B: 将输入事件编码为 Herdr 协议数据
+    B->>S: 经 SSH 标准输入输出通道转发
+    S->>P: 写 pane master，应用从 slave 读取
+    Note over T,P: 输出
+    P->>S: 应用写 slave，Server 读 master
+    S->>B: 返回 pane 输出及会话状态
+    B->>C: 经 SSH 通道传回本地
+    C->>T: 生成界面并写 slave，iTerm2 读 master 显示
+```
+
+这种方式下，Herdr Client 在本地运行；单个 pane 通常涉及两对 PTY：**本地 PTY 和云端 pane PTY**。SSH 与 bridge 负责传输协议数据，不额外创建 SSH 登录 PTY。
+
+### 方式二：SSH 登录云端后运行 Herdr
+
 第二种方式就是**远程登录云端后，在云端执行 Herdr 命令**。单个 pane 通常涉及三对 PTY：本地 PTY、Herdr client 使用的 SSH 登录 PTY、Herdr server 管理的 pane PTY。
 
 以下泳道图对应第二种方式，client/server 合并为一条泳道：
