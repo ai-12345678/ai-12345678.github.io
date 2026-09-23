@@ -108,6 +108,16 @@ herdr --remote ssh://root@192.168.1.10:22
 herdr --remote dev --session codex
 ```
 
+实际启动命令（以 SSH 别名 `devbox`、远程 Herdr 路径 `/home/work/.local/bin/herdr` 为例）：
+
+```bash
+ssh -T devbox 'exec /home/work/.local/bin/herdr remote-client-bridge'
+```
+
+启动后，本地终端（TTY）的输入/输出会通过本地 Herdr Client、SSH 通道和远程 `remote-client-bridge`，关联到云端的 Herdr Server：本地输入转发给远程会话，远程 Pane 的输出传回本地显示。
+
+这里的 `-T` 表示不为 SSH 连接分配伪终端；bridge 使用 SSH 的标准输入/输出传输 Herdr 协议数据，远程 Pane 的 PTY 由 Herdr Server 管理。`exec` 则用 bridge 进程替换远程执行该命令的 Shell。
+
 结构：
 
 ```text
