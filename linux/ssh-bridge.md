@@ -1,5 +1,11 @@
 # SSH Bridge 原理说明
 
+典型命令：
+
+```bash
+ssh -T devbox 'exec /home/work/.local/bin/herdr remote-client-bridge'
+```
+
 ## 1. 核心思想
 
 SSH Bridge 的本质是：
