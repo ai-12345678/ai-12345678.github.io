@@ -32,6 +32,24 @@ def extract_title(source: str, fallback: str) -> str:
 def render_page(title: str, body: str, md_href: str) -> str:
     safe_title = html.escape(title)
     safe_md_href = html.escape(md_href, quote=True)
+    mermaid_script = ""
+    if 'class="language-mermaid"' in body:
+        mermaid_script = """<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+for (const [index, code] of Array.from(document.querySelectorAll('pre > code.language-mermaid')).entries()) {
+  try {
+    const { svg, bindFunctions } = await mermaid.render(`diagram-${index}`, code.textContent);
+    const panel = document.createElement('div');
+    panel.className = 'mermaid-diagram';
+    panel.innerHTML = svg;
+    code.parentElement.replaceWith(panel);
+    bindFunctions?.(panel);
+  } catch (error) {
+    console.error('Unable to render Mermaid diagram', error);
+  }
+}
+</script>"""
     return f"""<!DOCTYPE html>
 <html lang=\"zh-CN\">
 <head>
@@ -91,6 +109,8 @@ def render_page(title: str, body: str, md_href: str) -> str:
     background: #f6f8fa;
   }}
   pre code {{ padding: 0; background: transparent; }}
+  .mermaid-diagram {{ overflow-x: auto; margin: 24px 0; }}
+  .mermaid-diagram svg {{ display: block; max-width: none !important; margin: 0 auto; }}
   table {{ width: 100%; border-collapse: collapse; }}
   th, td {{ padding: 8px 10px; border: 1px solid var(--border); text-align: left; }}
   blockquote {{ margin-left: 0; padding-left: 16px; border-left: 4px solid var(--border); color: var(--muted); }}
@@ -107,6 +127,7 @@ def render_page(title: str, body: str, md_href: str) -> str:
 {body}
   </article>
 </main>
+{mermaid_script}
 </body>
 </html>
 """

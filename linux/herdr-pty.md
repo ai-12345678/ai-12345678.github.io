@@ -1,0 +1,75 @@
+# Herdr 与 PTY 原理
+
+## 1. TTY 与 PTY
+
+历史 TTY 模型中，人操作实体终端，输入经过内核交给应用，输出沿反方向返回。现代 PTY 沿用这个模型，让软件代替实体终端接入主机。
+
+**字符设备：内核以文件接口向用户态暴露设备或驱动能力。** PTY 是内核提供的伪终端，一对 PTY 包含 master 和 slave：
+
+- 写 master → 应用从 slave 读输入。
+- 应用写 slave → 从 master 读输出。
+
+TTY 层会按配置处理回显、按行输入和信号，不一定逐字节原样转发。[1]
+
+## 2. 终端模拟器与 PTY 的边界
+
+| 组件 | 职责 |
+| --- | --- |
+| iTerm2 等终端模拟器（用户态） | 编码按键，解释控制序列，绘制文字、颜色、光标，维护屏幕和滚动历史 |
+| PTY / TTY（内核态） | 传递字节，提供终端模式、回显、信号等机制；不绘制画面、不保存永久历史 |
+
+**iTerm2 相当于软件终端，读写 master；应用通常通过连接 slave 的标准输入输出交互。** master 可类比为软件终端接入主机的接口，slave 则是应用使用的 TTY 字符设备。
+
+## 3. Herdr 的远程 PTY 链路
+
+`herdr --remote devbox` 通过 SSH 启动或连接云端 Herdr server。**pane 内的命令在云端环境执行，但 Herdr client 在本地显示界面。** 从使用效果看，类似登录云端后使用 Herdr；两种启动方式的 client 位置不同：[2]
+
+| 启动方式 | Herdr client | 主要链路 |
+| --- | --- | --- |
+| 本地执行 `herdr --remote devbox` | 本地 | 本地 PTY ↔ SSH 桥接 ↔ 云端 Herdr server ↔ pane PTY |
+| 先 `ssh devbox`，再执行 `herdr` | 云端 | 本地 PTY ↔ 云端 SSH 登录 PTY ↔ Herdr client/server ↔ pane PTY |
+
+第二种方式就是**远程登录云端后，在云端执行 Herdr 命令**。单个 pane 通常涉及三对 PTY：本地 PTY、Herdr client 使用的 SSH 登录 PTY、Herdr server 管理的 pane PTY。
+
+以下泳道图对应第二种方式，client/server 合并为一条泳道：
+
+```mermaid
+sequenceDiagram
+    participant I as iTerm2
+    participant L as 本地 PTY 与 ssh
+    participant S as 云端 sshd 与登录 PTY
+    participant H as 云端 Herdr client/server
+    participant P as pane PTY 与应用
+    Note over I,P: 输入
+    I->>L: 写 master，ssh 从 slave 读取
+    L->>S: SSH 传输，sshd 写登录 master
+    S->>H: client 从登录 slave 读取并转给 server
+    H->>P: server 写 pane master，应用读 slave
+    Note over I,P: 输出
+    P->>H: 应用写 slave，server 读 master
+    H->>S: client 生成界面输出，写登录 slave
+    S->>L: sshd 读 master，经 SSH 返回
+    L->>I: ssh 写本地 slave，iTerm2 读 master 并显示
+```
+
+**每个 pane 的 master 由 Herdr server 持有，slave 连接 shell、Agent 等程序。** 只要 server 和 pane PTY 仍存活，client 断开后任务可以继续，重连时恢复交互。[2][3]
+
+## 4. SSH 何时分配云端 PTY
+
+云端登录 PTY 由 **sshd 按客户端请求分配**，典型默认行为如下：[4]
+
+| 命令 | 云端登录 PTY |
+| --- | --- |
+| `ssh devbox` | 通常分配，用于交互式 shell |
+| `ssh devbox 'bash run.sh'` | 通常不分配，仍能收发 stdin/stdout/stderr |
+| `ssh -t devbox 'bash run.sh'` | 显式请求分配 |
+| `ssh -T devbox 'bash run.sh'` | 显式禁用分配 |
+
+实际分配受 SSH 配置和服务端策略影响，不改变 iTerm2 已有的本地 PTY。
+
+## 参考
+
+1. [Linux pty(7)](https://man7.org/linux/man-pages/man7/pty.7.html)
+2. [Herdr 远程连接](https://herdr.dev/docs/persistence-remote/)
+3. [Herdr PTY ownership](https://herdr.dev/blog/live-updates-without-killing-your-terminal-processes/)
+4. [OpenSSH ssh(1)](https://man.openbsd.org/ssh)
