@@ -22,7 +22,7 @@ TTY 层会按配置处理回显、按行输入和信号，不一定逐字节原�
 
 ## 3. Herdr 的远程 PTY 链路
 
-`herdr --remote devbox` 通过 SSH 启动或连接云端 Herdr server。**pane 内的命令在云端环境执行，但 Herdr client 在本地显示界面。** 从使用效果看，类似登录云端后使用 Herdr；两种启动方式的 client 位置不同：[2]
+`herdr --remote devbox` 通过 SSH 启动或连接云端 Herdr server。本质上是使用 `ssh -T` 建立 SSH 加密通道，然后将 Herdr client 侧的数据通过该通道直接转到云端 Herdr server。`ssh -T` 中的 `-T` **只是禁止 SSH 给远端命令额外分配 PTY**，并不影响 SSH 加密通道本身的建立和数据传输。[2][4]
 
 | 启动方式 | Herdr client | 主要链路 |
 | --- | --- | --- |
