@@ -22,6 +22,18 @@ sequenceDiagram
     participant Bridge as Remote Bridge
     participant Server as Local Server
 
+    Client->>SSH: 发起 Remote 连接
+    SSH->>SSHD: 建立 SSH 连接 / 认证
+    SSH->>SSHD: 创建 Session Channel + exec 请求
+    SSHD->>Bridge: 启动 Remote Bridge
+
+    Bridge->>Server: 检查 Local Server
+    alt Server 未启动
+        Bridge->>Server: 启动 Local Server
+    else Server 已存在
+        Bridge->>Server: 复用已有 Server
+    end
+
     Client->>SSH: 发送数据
     SSH->>SSHD: SSH Session Channel
     SSHD->>Bridge: stdin
