@@ -1,18 +1,18 @@
 # SSH Bridge 原理说明
 
-典型命令：
+## 1. 典型命令
 
 ```bash
 ssh -T devbox 'exec /home/work/.local/bin/herdr remote-client-bridge'
 ```
 
-## 1. 核心思想
+## 2. 核心思想
 
 SSH Bridge 的本质是：
 
 > 使用 SSH Session Channel 作为双向字节流，`sshd` 在远端启动 Bridge 进程，并把客户端数据与 Bridge 的 stdin/stdout 相互转发。
 
-## 2. 整体链路
+## 3. 整体链路
 
 ```mermaid
 sequenceDiagram
@@ -33,7 +33,7 @@ sequenceDiagram
     SSH-->>Client: 返回数据
 ```
 
-## 3. sshd 做了什么
+## 4. sshd 做了什么
 
 `sshd` 主要负责：
 
