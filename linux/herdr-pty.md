@@ -46,9 +46,15 @@ sequenceDiagram
     participant B as SSH 通道与远程 bridge
     participant S as 云端 Herdr Server
     participant P as pane PTY 与应用
-    C->>B: ssh -T 启动 remote-client-bridge
+    Note over C,S: 建立远程连接
+    C->>B: 每次连接通过 ssh -T 启动 bridge 进程
+    Note over B: SSH 不分配登录 PTY，但仍启动远程进程
+    alt 目标 Server 尚未运行
+        B->>S: 启动 Herdr Server 进程
+    else 目标 Server 已运行
+        Note over B,S: 复用已有 Server 进程
+    end
     B->>S: 建立协议连接
-    Note over B,S: SSH 不分配登录 PTY
     Note over T,P: 输入
     T->>C: iTerm2 写 master，Client 从 slave 读取
     C->>B: 将输入事件编码为 Herdr 协议数据
