@@ -1,189 +1,122 @@
-# 终端模拟器与 PTY 的边界
+# 终端模拟器能力知识库
 
-## 1. 整体关系
+终端模拟器（如 iTerm2、kitty、WezTerm、xterm）把应用输出的**终端字节流**解释成屏幕界面，也把键盘、鼠标和粘贴操作编码成字节送回应用。它模拟的是终端设备的行为与协议，而不只是显示文本的窗口。
 
-```text
-键盘 / 屏幕
-    │
-    ▼
-Terminal Emulator
-    │
-    │ 字节流
-    ▼
-PTY master
-    ║
-PTY slave
-    │
-    ▼
-shell / vim / claude / codex
-```
-
-可以简单理解为：
-
-> **终端模拟器负责“显示和键盘编码”，PTY/TTY 负责“字节传输和 Unix 终端语义”。**
-
-## 2. 终端模拟器负责什么
-
-常见终端模拟器：iTerm2、Terminal.app、xterm、kitty。
-
-主要负责：
-
-- 显示文字、颜色、光标和清屏
-- 解析 ANSI / VT 控制序列
-- 保存 screen / scrollback
-- 把键盘操作编码成字节
-
-例如：
+## 一、先看清楚链路
 
 ```text
-Ctrl+C   → 0x03
-↑        → ESC [ A
+应用（bash、vim、htop） ↔ PTY slave ↔ 内核 TTY / PTY ↔ PTY master ↔ 终端模拟器 ↔ 用户
 ```
 
-程序输出：
+- 应用通常把 PTY slave 作为标准输入、标准输出和标准错误的终端；`stderr` 与 `stdout` 是不同文件描述符，但都可以连接到同一个 PTY。
+- PTY 负责双向传输字节、维护终端属性和窗口大小；它不会长期保存完整屏幕或历史输出。
+- 终端模拟器解析输出，维护屏幕、光标和模式，并负责绘制；输入方向则把按键等事件转换为终端协议。
+- TTY line discipline 处理规范模式、回显、特殊控制字符和作业控制信号。应用也可以切换到 raw / noncanonical 模式，自行处理输入。
+
+**注意：**普通控制字符（如 `\r`、`\n`、BEL、ESC）与以 ESC 开头的完整控制序列不是同一层概念。下面的 `ESC` 表示字节 `0x1B`；写成 `\x1b[31m` 是为了便于在程序里使用。
+
+## 二、输出方向：能显示和修改什么
+
+| 能力 | 应用能做什么 | 常见方式 |
+|---|---|---|
+| 文字与样式 | 显示文字、粗体、斜体、下划线、反色、前景色、背景色、256 色和真彩色 | 文本与 SGR，如 `ESC[31m`、`ESC[0m` |
+| 光标 | 移动到指定行列、相对移动、隐藏或显示 | CSI 序列，如 `ESC[10;20H` |
+| 清除与编辑 | 清屏、清行、从光标清到行尾、插入或删除字符和行 | 如 `ESC[2J`、`ESC[K` |
+| 原地更新 | 在同一行刷新进度、覆盖状态、局部重绘 TUI | `\r`、光标移动、清行 |
+| 滚动区域 | 让正文滚动，同时把标题和状态栏留在固定位置 | 设置上下滚动边界 |
+| 主屏与备用屏 | 进入 vim、htop 等全屏界面，退出时恢复原来的主屏 | alternate screen 模式 |
+| 提示 | 响铃、闪烁或桌面提示，实际效果取决于终端设置 | BEL（`0x07`）及扩展协议 |
+| 窗口标题 | 设置终端标签或窗口标题 | OSC 0 / OSC 2 |
+| 超链接 | 把显示文字关联到可点击的 URL | OSC 8，须终端支持 |
+| 剪贴板 | 请求设置或读取本地剪贴板 | OSC 52，须终端允许 |
+| 图片与图形 | 在终端区域内显示图片 | kitty graphics、Sixel、iTerm2 等扩展，兼容性各异 |
+
+示例：输出红色的 `ERROR`，然后恢复默认样式。
+
+```bash
+printf '\033[31mERROR\033[0m\n'
+```
+
+### 进度条为何可以在原处变化
+
+`\r`（carriage return）把光标移到当前行开头，**不会自动清除旧字符**。如果新文本比旧文本短，还要清行或补空格。
+
+```bash
+printf 'Downloading 100%%\r'
+printf 'Done\033[K\n'
+```
+
+全屏程序通常维护自己的界面状态，只输出需要改变的区域。终端模拟器解析这些指令后更新屏幕模型，再绘制实际像素。
+
+### 屏幕与历史
+
+终端一般有当前可见的字符网格、主屏和备用屏，以及向上滚动时看到的 scrollback。备用屏退出后恢复主屏，scrollback 则通常由**终端模拟器或复用器**保存。内核 PTY 只提供实时字节通道，不是持久化的历史库。终端关闭后能否找回历史，取决于相应客户端、复用器或服务端是否保存了状态。
+
+### 字符宽度与换行
+
+终端把文本放进按行列排列的 cell。ASCII 字符通常占一列，中文通常占两列；Emoji、组合字符和复杂字形的宽度可能因实现而异。终端还要维护自动换行、光标位置、滚动边界、UTF-8 解码与字体渲染，所以 TUI 表格偶尔会错位。
+
+## 三、输入方向：能向应用发送什么
+
+| 用户操作 | 终端模拟器通常如何处理 | 应用侧看到什么 |
+|---|---|---|
+| 输入普通字符 | 编码成字节写入 PTY master | UTF-8 等文本字节 |
+| Enter、Backspace、方向键、功能键 | 依终端模式和配置编码 | 控制字符或 ESC 序列；上箭头常见为 `ESC[A` |
+| Ctrl+C、Ctrl+Z | 常见编码为 `0x03`、`0x1A` | line discipline 可把它们转成 `SIGINT`、`SIGTSTP` |
+| Ctrl+D | 常见编码为 `0x04` | 在规范模式下，行首可表示输入结束；它本身不是退出进程的信号 |
+| 鼠标点击、拖动、滚轮 | 程序开启 mouse reporting 后编码坐标和动作 | 鼠标报告序列 |
+| 粘贴 | 写入文本；开启 bracketed paste 后附加边界标记 | `ESC[200~`、内容、`ESC[201~` |
+| 改变窗口大小 | 更新 PTY winsize | 应用可用 `TIOCGWINSZ` 读取，前台进程组通常收到 `SIGWINCH` |
+
+例如按下 Ctrl+C 时，常见路径是：
 
 ```text
-\x1b[31mhello\x1b[0m
+键盘事件 → 终端模拟器写入 0x03 → PTY / TTY line discipline
+                                           └→ ISIG 开启时向前台进程组发送 SIGINT
 ```
 
-终端模拟器会把它显示成红色的 `hello`。
+如果应用关闭了 `ISIG` 或改变了终端模式，`0x03` 不一定会变成信号。规范模式下，TTY 还能做行编辑和输入回显；raw 模式下，全屏程序可更直接地读取按键字节。**屏幕上显示出刚输入的字符**，可能来自 TTY 回显，也可能是 shell 或应用自行重绘，并不必然是终端模拟器本地回显。
 
-## 3. PTY / TTY 负责什么
+## 四、终端是双向协议端点
 
-PTY 是内核提供的伪终端：
+应用能发送查询，请终端报告状态；终端把响应写回输入流。例如：
 
 ```text
-PTY master  <====>  PTY slave
+应用 → ESC[6n       查询光标位置
+终端 → ESC[12;40R   返回第 12 行、第 40 列
 ```
 
-主要负责：
+终端还会维护当前颜色、光标、滚动区域、自动换行、键盘模式、鼠标报告、bracketed paste、备用屏等状态。`TERM` 与 terminfo 描述一部分可用能力；ncurses 等库利用这些信息为不同终端生成控制序列。现代扩展协议还需要单独检测，不能仅凭 `TERM` 推断全部能力。
 
-- 在两端传输字节
-- canonical / raw mode
-- echo
-- window size
-- foreground process group
-- job control
-- 控制字符与信号处理
+## 五、各层职责速查
 
-应用通常连接 PTY slave：
+| 组件 | 主要职责 | 不负责 |
+|---|---|---|
+| 应用 / shell | 产生文字与控制序列；解释 `cd`、管道 `\|`、重定向 `>` 等命令语义 | 绘制终端窗口像素 |
+| PTY 与 TTY line discipline | 双向字节通道、终端属性、窗口大小、可选的行编辑与信号处理 | 解析颜色或保存长期 scrollback |
+| 终端模拟器 | 解析终端控制协议、维护屏幕状态、渲染、编码键鼠输入 | 解释 shell 命令或保存应用进程的退出码 |
+| 复用器 / 会话服务端（如 tmux、Herdr 的服务端） | 持有会话和 PTY，可在客户端断开后继续运行并保存自己的窗格状态或历史 | 自动等同于内核 PTY 的历史存储 |
 
-```text
-stdin  ─┐
-stdout ─┼── PTY slave
-stderr ─┘
+对于远程会话，还可能经过 SSH：远程程序输出的终端序列经 SSH 传到本地，再由本地终端模拟器绘制。复用器处在中间时也可能解析、转换或过滤部分序列，不能假定所有扩展都无条件透传。
+
+## 六、自己动手观察
+
+在一个可交互的终端中运行：
+
+```bash
+# 颜色和样式
+printf '\033[1;34m蓝色粗体\033[0m\n'
+
+# 先输出长行，再回行首，清除余下旧文字
+printf 'progress: 100%%\r'
+printf 'done\033[K\n'
+
+# 查看当前终端类型、窗口大小和 TTY 属性
+printf 'TERM=%s\n' "$TERM"
+stty size
+stty -a
 ```
 
-而终端程序、tmux、Herdr Server 等通常持有 PTY master。
+`printf` 的转义由 shell / printf 生成；终端收到的是对应字节。若把这些输出重定向到普通文件，文件中可能包含原始 ESC 字节，却不会自行出现彩色界面。把文件交给支持终端协议的显示端时，才会按协议呈现。
 
-## 4. 两个典型例子
-
-### 输出颜色
-
-```text
-应用
-  ↓
-"\x1b[31mhello"
-  ↓
-PTY：只传字节
-  ↓
-Terminal Emulator：解析 ANSI
-  ↓
-显示红色 hello
-```
-
-PTY 并不知道 `\x1b[31m` 表示红色。
-
-### Ctrl+C
-
-```text
-用户按 Ctrl+C
-      ↓
-Terminal Emulator
-      ↓
-生成 0x03
-      ↓
-PTY / TTY line discipline
-      ↓
-SIGINT
-      ↓
-foreground process group
-```
-
-因此：
-
-```text
-Terminal Emulator：Ctrl+C → 0x03
-PTY / TTY：0x03 → SIGINT
-```
-
-## 5. Scrollback 属于谁
-
-Scrollback **不属于 PTY**。
-
-PTY 只是实时传输字节；终端模拟器或 tmux / Herdr 这类服务端负责维护：
-
-```text
-screen
-+
-scrollback
-```
-
-因此 PTY 本身不会长期保存：
-
-```text
-$ ls
-a.txt
-b.txt
-```
-
-这类历史内容。
-
-## 6. Herdr 中的关系
-
-```text
-本地 Terminal
-      │
-Herdr Client
-      │
-    socket
-      │
-Herdr Server
-      │
-screen + scrollback
-      │
-   PTY master
-      ║
-   PTY slave
-      │
-shell / claude / codex
-```
-
-Client 退出后，Server、PTY、shell、Claude/Codex 仍然可以继续运行。
-
-重新执行 `herdr --session xxx` 时，本质上是：
-
-```text
-新 Client
-   ↓
-重新 attach 到原 Server
-   ↓
-恢复 screen / scrollback 显示
-   ↓
-继续使用原来的 PTY 和进程
-```
-
-## 7. 一句话总结
-
-```text
-Terminal Emulator
-= 显示 + ANSI解析 + 键盘编码 + scrollback
-
-PTY / TTY
-= 字节传输 + termios + job control + signal
-
-Herdr Server
-= PTY owner + terminal state + session/pane 管理
-```
-
-> **终端模拟器决定“终端长什么样”，PTY/TTY 决定“终端字节如何传输以及 Unix 终端控制语义如何工作”。**
+**一句话记忆：**PTY 传输和管理终端字节流，TTY 层处理输入规则与信号，终端模拟器把协议变成屏幕与交互，shell 解释命令语言。
