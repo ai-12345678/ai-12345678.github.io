@@ -2,9 +2,9 @@
 """Build the GitHub Pages site from the repository root.
 
 Rules:
-- Copy the hand-written home page and the Kubernetes/Linux content to _site/.
+- Copy the hand-written home page and publishable content directories to _site/.
 - Keep hand-written Kubernetes HTML unchanged.
-- Generate a sibling HTML page for every Markdown file under linux/.
+- Generate a sibling HTML page for every Markdown file under linux/ and agents/.
 - Keep the original Markdown files available for download.
 """
 
@@ -18,8 +18,8 @@ import markdown
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "_site"
-LINUX = ROOT / "linux"
-PUBLISH_ENTRIES = ("index.html", "kubernetes", "linux")
+CONTENT_DIRS = (ROOT / "linux", ROOT / "agents")
+PUBLISH_ENTRIES = ("index.html", "kubernetes", "linux", "agents")
 
 
 def extract_title(source: str, fallback: str) -> str:
@@ -151,21 +151,22 @@ def main() -> None:
     copy_publish_entries()
 
     generated = 0
-    for md_path in LINUX.rglob("*.md"):
-        rel = md_path.relative_to(ROOT)
-        output_html = SITE / rel.with_suffix(".html")
-        source = md_path.read_text(encoding="utf-8")
-        title = extract_title(source, md_path.stem.replace("-", " ").title())
-        body = markdown.markdown(
-            source,
-            extensions=["fenced_code", "tables", "sane_lists"],
-            output_format="html5",
-        )
-        output_html.parent.mkdir(parents=True, exist_ok=True)
-        output_html.write_text(
-            render_page(title, body, md_path.name), encoding="utf-8"
-        )
-        generated += 1
+    for content_dir in CONTENT_DIRS:
+        for md_path in content_dir.rglob("*.md"):
+            rel = md_path.relative_to(ROOT)
+            output_html = SITE / rel.with_suffix(".html")
+            source = md_path.read_text(encoding="utf-8")
+            title = extract_title(source, md_path.stem.replace("-", " ").title())
+            body = markdown.markdown(
+                source,
+                extensions=["fenced_code", "tables", "sane_lists"],
+                output_format="html5",
+            )
+            output_html.parent.mkdir(parents=True, exist_ok=True)
+            output_html.write_text(
+                render_page(title, body, md_path.name), encoding="utf-8"
+            )
+            generated += 1
 
     print(f"Pages build complete: generated={generated}, output={SITE}")
 
