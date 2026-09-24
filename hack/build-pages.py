@@ -71,6 +71,7 @@ for (const [index, code] of Array.from(document.querySelectorAll('pre > code.lan
     font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;
     background: var(--bg);
     color: var(--text);
+    font-size: 16px;
     line-height: 1.75;
   }}
   .page {{
@@ -93,9 +94,11 @@ for (const [index, code] of Array.from(document.querySelectorAll('pre > code.lan
     background: var(--panel);
   }}
   h1, h2, h3 {{ line-height: 1.3; }}
-  h1 {{ margin-top: 0; }}
-  h2 {{ margin-top: 32px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }}
+  h1 {{ margin-top: 0; font-size: 30px; }}
+  h2 {{ font-size: 21px; margin-top: 32px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }}
+  h3 {{ font-size: 18px; }}
   code {{
+    font-size: 14px;
     padding: .15em .35em;
     border-radius: 6px;
     background: #eff1f3;
@@ -114,7 +117,7 @@ for (const [index, code] of Array.from(document.querySelectorAll('pre > code.lan
   table {{ width: 100%; border-collapse: collapse; }}
   th, td {{ padding: 8px 10px; border: 1px solid var(--border); text-align: left; }}
   blockquote {{ margin-left: 0; padding-left: 16px; border-left: 4px solid var(--border); color: var(--muted); }}
-  @media (max-width: 640px) {{ article {{ padding: 24px 20px; }} }}
+  @media (max-width: 640px) {{ article {{ padding: 24px 20px; }} h1 {{ font-size: 26px; }} }}
 </style>
 </head>
 <body>
