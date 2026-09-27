@@ -39,6 +39,56 @@ null
 
 `child` 自身没有 `x`，因此访问 `child.x` 时会沿原型链委托给 `parent` 查找。
 
+### JavaScript 的 class 本质
+
+JavaScript 里的 `class` 本身也可以理解为一个对象，更精确地说：它本质上是一个特殊的函数对象。
+
+例如：
+
+```javascript
+class User {
+  constructor(name) {
+    this.name = name;
+  }
+
+  hello() {
+    console.log(this.name);
+  }
+}
+
+console.log(typeof User); // "function"
+
+const user = new User("Tom");
+console.log(typeof user); // "object"
+```
+
+其中：
+
+- `User` 本身是一个函数对象，可以作为构造函数使用。
+- `User.prototype` 是一个普通对象，实例方法通常定义在这里。
+- `user` 是通过 `new User()` 创建出来的实例对象。
+- `user.[[Prototype]]` 指向 `User.prototype`，因此 `user.hello()` 可以沿原型链找到 `hello` 方法。
+
+关系可以简化为：
+
+```text
+User                    // 函数对象
+  │
+  └── prototype
+        │
+        ├── constructor → User
+        └── hello()
+
+new User()
+    │
+    ▼
+  user
+    │
+    └── [[Prototype]] → User.prototype
+```
+
+所以 JavaScript 的 `class` 并没有改变 JavaScript 基于原型的对象模型，它主要是在原型机制之上提供了一套更接近传统面向对象语言的语法。
+
 ## 快速理解
 
 ```text
