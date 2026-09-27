@@ -9,6 +9,36 @@
 | 组合 | Go / Rust / Swift | `Type A + Type B → Type C` |
 | 数据结构 / Value Type | C / Go / Rust / Swift / C# | 按字段定义结构，再创建值或对象 |
 
+## 原型委托
+
+原型对象可以看成“父亲、祖先对象”，但本质上是当前对象查找属性时委托的上一级对象。子对象基于某个已有对象建立，并把这个已有对象作为自己的原型。
+
+例如：
+
+```javascript
+const parent = {
+  x: 1
+};
+
+const child = Object.create(parent);
+
+console.log(child.x); // 1
+```
+
+可以理解为：
+
+```text
+child
+  ↓ [[Prototype]]
+parent
+  ↓ [[Prototype]]
+Object.prototype
+  ↓
+null
+```
+
+`child` 自身没有 `x`，因此访问 `child.x` 时会沿原型链委托给 `parent` 查找。
+
 ## 快速理解
 
 ```text
