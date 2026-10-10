@@ -4,7 +4,7 @@
 Rules:
 - Copy the hand-written home page and publishable content directories to _site/.
 - Keep hand-written Kubernetes HTML unchanged.
-- Generate a sibling HTML page for every Markdown file under linux/, agents/, lang/, and models/.
+- Generate a sibling HTML page for every Markdown file under linux/, agents/, lang/, golang/, and models/.
 - Keep the original Markdown files available for download.
 """
 
@@ -18,8 +18,8 @@ import markdown
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "_site"
-CONTENT_DIRS = (ROOT / "linux", ROOT / "agents", ROOT / "lang", ROOT / "models")
-PUBLISH_ENTRIES = ("index.html", "kubernetes", "linux", "agents", "lang", "models")
+CONTENT_DIRS = (ROOT / "linux", ROOT / "agents", ROOT / "lang", ROOT / "golang", ROOT / "models")
+PUBLISH_ENTRIES = ("index.html", "kubernetes", "linux", "agents", "lang", "golang", "models")
 
 
 def extract_title(source: str, fallback: str) -> str:
