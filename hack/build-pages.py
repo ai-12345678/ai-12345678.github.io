@@ -4,7 +4,7 @@
 Rules:
 - Copy the hand-written home page and publishable content directories to _site/.
 - Keep hand-written Kubernetes HTML unchanged.
-- Generate a sibling HTML page for every Markdown file under linux/, agents/, lang/, golang/, and models/.
+- Generate a sibling HTML page for every Markdown file under linux/, agents/, lang/, golang/, models/, and network/.
 - Keep the original Markdown files available for download.
 """
 
@@ -18,8 +18,8 @@ import markdown
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "_site"
-CONTENT_DIRS = (ROOT / "linux", ROOT / "agents", ROOT / "lang", ROOT / "golang", ROOT / "models")
-PUBLISH_ENTRIES = ("index.html", "kubernetes", "linux", "agents", "lang", "golang", "models")
+CONTENT_DIRS = (ROOT / "linux", ROOT / "agents", ROOT / "lang", ROOT / "golang", ROOT / "models", ROOT / "network")
+PUBLISH_ENTRIES = ("index.html", "kubernetes", "linux", "agents", "lang", "golang", "models", "network")
 
 
 def extract_title(source: str, fallback: str) -> str:
@@ -114,6 +114,7 @@ for (const [index, code] of Array.from(document.querySelectorAll('pre > code.lan
   pre code {{ padding: 0; background: transparent; }}
   .mermaid-diagram {{ overflow-x: auto; margin: 24px 0; }}
   .mermaid-diagram svg {{ display: block; max-width: none !important; margin: 0 auto; }}
+  img {{ display: block; max-width: 100%; height: auto; margin: 20px auto; }}
   table {{ width: 100%; border-collapse: collapse; }}
   th, td {{ padding: 8px 10px; border: 1px solid var(--border); text-align: left; }}
   blockquote {{ margin-left: 0; padding-left: 16px; border-left: 4px solid var(--border); color: var(--muted); }}
