@@ -6,7 +6,7 @@
 
 | 顺序 | 主题 | 本次记录 |
 | --- | --- | --- |
-| 01 | 采样、量化、混叠与 PCM | [DSP 入门笔记](dsp-01-sampling.html) |
+| 01 | 采样、量化、混叠与 PCM | [DSP 入门笔记](dsp-01-sampling.html) · [奈奎斯特频率说明](../speech/nyquist-frequency.html) |
 | 02 | 算法复杂度与滑动窗口 | [算法入门笔记](algorithms-01-complexity.html) |
 | 03 | 人工智能、机器学习与模型评估 | [AI 入门笔记](ai-01-learning-basics.html) |
 | 04 | 向量、矩阵、概率与梯度 | 待写 |
