@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="light">
+<title>混响（Reverberation）与回声（Echo）：原理和试听对比</title>
+<style>
+:root{--fg:#182332;--border:#dae3ed;--link:#0969da;--muted:#5f7085}
+*{box-sizing:border-box}body{margin:0;background:#f6f8fb;color:var(--fg);line-height:1.75;font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:1010px;margin:28px auto 60px;padding:35px 42px;border:1px solid var(--border);border-radius:17px;background:white;box-shadow:0 10px 30px #0f172a0d}
+h1{font-size:clamp(26px,4vw,38px);line-height:1.35;margin:12px 0 22px}h2{border-top:1px solid var(--border);font-size:24px;margin-top:40px;padding-top:22px}h3{font-size:19px;margin-top:26px}
+p{margin:12px 0}a{color:var(--link)}.crumb{font-size:14px}.lead{border-left:4px solid #2563eb;border-radius:6px;background:#eff6ff;padding:15px 18px;font-size:17px}.meta{color:var(--muted);font-size:14px}
+table{width:100%;border-collapse:collapse;margin:14px 0}th,td{border:1px solid var(--border);padding:11px;text-align:left;vertical-align:middle;font-size:14px}th{background:#f1f5f9}
+audio{width:min(275px,100%);vertical-align:middle}.dl{font-size:12px;margin-left:12px;white-space:nowrap}
+.scroll{overflow-x:auto}.comparison{display:flex;align-items:center;gap:15px;flex-wrap:wrap;padding:16px;border:1px solid var(--border);background:#f8fafc;border-radius:9px}
+.comparison audio{width:min(355px,100%)}.pill{border-radius:999px;display:inline-block;padding:3px 11px;background:#dcfce7;color:#166534;font-size:13px;font-weight:600}
+figure{margin:20px 0}figure img{display:block;width:100%;border:1px solid var(--border);border-radius:10px}figcaption{color:var(--muted);font-size:13px;text-align:center}
+pre{background:#0f172a;color:#e2e8f0;border-radius:9px;padding:17px;overflow:auto;font:13px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}
+code{background:#f1f5f9;padding:2px 5px;border-radius:4px}blockquote{margin:18px 0;padding:9px 16px;border-left:4px solid #94a3b8;background:#f8fafc}
+.footer{font-size:13px;color:var(--muted);margin-top:45px}
+@media(max-width:650px){main{margin:0;border-radius:0;padding:22px 16px}th,td{padding:8px}td audio{min-width:165px;width:165px}.dl{display:block;margin-left:0}}
+</style></head>
+<body><main>
+<div class="crumb"><a href="../index.html">← 知识库首页</a>　/　<a href="./reverb-echo.md">Markdown 原文</a></div>
+<h1>混响（Reverberation）与回声（Echo）：原理和试听对比</h1>
+<p class="lead"><strong>核心区别：</strong><strong>混响</strong>是大量密集反射声叠加形成连续、逐渐衰减的拖尾；<strong>回声</strong>是延迟后的声音可以被明显分辨为重复。</p>
+<p class="meta"><span class="pill">8 段音频可试听</span>　24 kHz / 16-bit PCM / 单声道 · 合成教学样例</p>
+<h2 id="listen">1. 先听声音，再理解概念</h2>
+<h3>实验 A：拍手声（最容易区分）</h3>
+<p>拍手脉冲非常短，便于听清“持续拖尾”与“隔一会儿又出现一次”的差异。</p>
+<div class="scroll"><table><thead><tr><th>类型</th><th>试听音频</th><th>应该听到什么</th></tr></thead><tbody>
+<tr><td>04 原声 Dry</td><td><audio controls preload="none" src="./reverb_echo_assets/audio/04_clap_dry.wav">浏览器不支持音频播放</audio><a class="dl" href="./reverb_echo_assets/audio/04_clap_dry.wav" download>下载 WAV</a></td><td>很短的一声“啪”，结束得很快。</td></tr>
+<tr><td>05 混响 Reverb</td><td><audio controls preload="none" src="./reverb_echo_assets/audio/05_clap_reverb.wav">浏览器不支持音频播放</audio><a class="dl" href="./reverb_echo_assets/audio/05_clap_reverb.wav" download>下载 WAV</a></td><td>一声之后出现密集拖尾，逐渐衰减。</td></tr>
+<tr><td>06 回声 Echo</td><td><audio controls preload="none" src="./reverb_echo_assets/audio/06_clap_echo.wav">浏览器不支持音频播放</audio><a class="dl" href="./reverb_echo_assets/audio/06_clap_echo.wav" download>下载 WAV</a></td><td>约 0.56 秒后又出现一声清晰“啪”。</td></tr>
+</tbody></table></div>
+<div class="comparison"><strong>连续对比：原声 → 混响 → 回声</strong><audio controls preload="none" src="./reverb_echo_assets/audio/08_clap_ABC.wav">浏览器不支持音频播放</audio><a class="dl" href="./reverb_echo_assets/audio/08_clap_ABC.wav" download>下载 WAV</a></div>
+<h3>实验 B：合成仿人声音节（AFE / ASR 场景）</h3>
+<p>这是双音节的人声近似合成音（<strong>不是自然语言 TTS</strong>）。三段音频均使用同一段原始音，区别仅在于加入的声学效果。</p>
+<div class="scroll"><table><thead><tr><th>类型</th><th>试听音频</th><th>应该听到什么</th></tr></thead><tbody>
+<tr><td>01 原声 Dry</td><td><audio controls preload="none" src="./reverb_echo_assets/audio/01_voice_dry.wav">浏览器不支持音频播放</audio><a class="dl" href="./reverb_echo_assets/audio/01_voice_dry.wav" download>下载 WAV</a></td><td>音节结束后很快安静。</td></tr>
+<tr><td>02 混响 Reverb</td><td><audio controls preload="none" src="./reverb_echo_assets/audio/02_voice_reverb.wav">浏览器不支持音频播放</audio><a class="dl" href="./reverb_echo_assets/audio/02_voice_reverb.wav" download>下载 WAV</a></td><td>音节重叠，尾音逐渐变弱。</td></tr>
+<tr><td>03 回声 Echo</td><td><audio controls preload="none" src="./reverb_echo_assets/audio/03_voice_echo.wav">浏览器不支持音频播放</audio><a class="dl" href="./reverb_echo_assets/audio/03_voice_echo.wav" download>下载 WAV</a></td><td>延迟后又出现一遍可辨认的声音。</td></tr>
+</tbody></table></div>
+<div class="comparison"><strong>连续对比：原声 → 混响 → 回声</strong><audio controls preload="none" src="./reverb_echo_assets/audio/07_voice_ABC.wav">浏览器不支持音频播放</audio><a class="dl" href="./reverb_echo_assets/audio/07_voice_ABC.wav" download>下载 WAV</a></div>
+<h3>示意波形（包络）</h3>
+<figure><img src="./reverb_echo_assets/images/waveform_comparison.svg" alt="原声、混响与回声的信号包络示意"><figcaption>结构示意：原声结束迅速衰减；混响拖尾连续；回声出现分开的延迟峰。</figcaption></figure>
+<h2>2. 概念对比</h2>
+<div class="scroll"><table><thead><tr><th>对比项</th><th>混响（Reverberation）</th><th>回声（Echo）</th></tr></thead><tbody>
+<tr><td>听感</td><td>密集反射声，连续拖尾</td><td>可分辨的延迟重复声</td></tr>
+<tr><td>常见场景</td><td>房间、教堂、会议室</td><td>山谷、远距离反射墙面</td></tr>
+<tr><td>时间分布</td><td>早期反射 + 密集后期反射</td><td>突出的长延迟反射或重复路径</td></tr>
+<tr><td>常用指标</td><td>RT60、早期衰减时间</td><td>回声延迟、幅度、路径损耗</td></tr>
+<tr><td>对 ASR 的影响</td><td>音节重叠、语音模糊</td><td>重复声音干扰识别</td></tr>
+</tbody></table></div>
+<p><strong>注意：</strong>混响不仅发生在尾音。说话时，之前声音的反射始终和当前声音叠加；声源停止后更容易听见混响拖尾。</p>
+<h2>3. 混响产生原理</h2>
+<pre>说话人 / 扬声器
+ ├── 直达声 ─────────────────────┐
+ ├── 早期反射（墙壁/地板） ───────┼──→ 麦克风采集并叠加
+ └── 后期密集反射（多次反射） ─────┘</pre>
+<p>常用房间冲激响应（RIR）表达声音传播：<strong>y(t) = x(t) * h(t)</strong>。其中，x(t) 是原始信号，h(t) 包含传播与反射的信息，y(t) 是麦克风收到的信号；<code>*</code> 代表卷积。</p>
+<p><strong>RT60（混响时间）：</strong>声源停止后，混响声压级衰减 60 dB 的时间。本示例将算法衰减参数设置为约 1.3 秒，属于教学模拟而非房间实测。</p>
+<h2>4. 回声产生原理</h2>
+<p>简化公式：<strong>y(t) = x(t) + a · x(t − τ)</strong>，其中 a 是回声相对幅度，τ 是回声的延迟。本实验设置的重复时间为 <strong>560 ms、1120 ms、1680 ms</strong>，每次逐渐变弱。</p>
+<h2>5. 在语音系统 AFE / ASR 中如何处理</h2>
+<pre>人声 + 房间混响 + 扬声器播放串音 + 环境噪声
+                         ↓
+                      麦克风 PCM
+                         ↓
+                      AFE 音频前端
+       ├── AEC：声学回声消除
+       ├── Dereverb：去混响
+       ├── NS：噪声抑制
+       └── BF：多麦克风波束形成
+                         ↓
+                     VAD / KWS / ASR</pre>
+<p><strong>AEC（Acoustic Echo Cancellation）</strong> 通常借助扬声器参考信号，消除回放声音进入麦克风的声学回声。<strong>Dereverb</strong> 主要抑制目标人声在房间里产生的混响拖尾。AEC 所处理的“回声”也可能包含许多密集反射，不能简单理解成山谷里能分辨的重复声。各处理模块在真实工程中没有固定的统一顺序。</p>
+<h2>6. 总结</h2>
+<blockquote><strong>混响：</strong>声音后面跟着密密的、连续变小的尾巴。<p><strong>回声：</strong>声音过一段时间又明显出现一次。</p></blockquote>
+<p>建议闭眼听拍手声的 ABC 对比，判断哪段是连续拖尾，哪段有分离的重复“啪”。</p>
+<div class="footer">教学音频为程序合成而非实际房间录音；混响采用多路短延时反馈扩散，回声采用离散延迟。<a href="./reverb-echo.md">阅读完整 Markdown</a> · <a href="../index.html">知识库首页</a></div>
+</main></body></html>
