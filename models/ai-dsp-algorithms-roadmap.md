@@ -19,6 +19,7 @@
 | 11 | VAD、关键词检测与语音识别 | 待写 |
 | 12 | ONNX、量化与端侧部署 | 待写 |
 | 13 | 分类任务、Sigmoid / Softmax 与损失函数 | [分类任务的激活函数与损失函数](classification-activation-functions.html) |
+| 14 | 音频重采样、插值、低通/高通与多声道混合 | [图解与手算 Demo](audio-resampling-filtering-mixing.html) |
 
 前三篇是概念入口，后续从数学与信号处理基础展开。每次完成一篇后更新此表；「待写」表示尚未完成，没有预先创建空文章。
 

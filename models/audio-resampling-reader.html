@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>音频重采样、滤波与多声道混合</title>
+  <style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css">:root{color-scheme:light;--ink:#182c3f;--muted:#567086;--blue:#2266b5;--line:#dce5eb;--paper:#fff;--bg:#eef3f7}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0 auto;padding:36px 42px 70px;max-width:980px;background:var(--paper);color:var(--ink);font:17px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;overflow-wrap:anywhere}
+html{background:var(--bg)}h1{font-size:34px;line-height:1.4;margin:8px 0 25px;letter-spacing:.01em}h2{font-size:25px;margin:54px 0 20px;padding-top:14px;border-top:2px solid var(--line);scroll-margin-top:20px}h3{font-size:19px;margin:28px 0 12px;color:var(--blue)}p{margin:13px 0}a{color:var(--blue);text-underline-offset:3px}strong{color:#153e65}code{font-family:"SFMono-Regular",Consolas,monospace;font-size:.91em;background:#edf3f8;padding:2px 5px;border-radius:4px}pre{padding:19px 22px;border-radius:10px;background:#f1f5f8;border:1px solid var(--line);line-height:1.7;overflow:auto;font-size:14px}pre code{background:none;padding:0;white-space:pre;overflow-wrap:normal}table{width:100%;border-collapse:collapse;font-size:15px;margin:22px 0;display:block;overflow-x:auto}th,td{padding:10px 13px;border:1px solid var(--line);text-align:left;min-width:90px}th{background:#eaf2f9;font-weight:650}tbody tr:nth-child(even){background:#f8fafc}img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:white;cursor:zoom-in;margin:21px 0 9px}figure{margin:24px 0}figcaption{font-size:13px;color:var(--muted);text-align:center;line-height:1.6;margin-top:8px}nav{padding:18px 25px;border:1px solid var(--line);border-radius:12px;background:#f6f9fc;margin:25px 0}nav ul{padding-left:21px;margin:10px 0}nav li{margin:6px 0;line-height:1.6}nav a{text-decoration:none}summary{cursor:pointer;font-weight:650;color:var(--blue)}.meta{font-size:14px;color:var(--muted);margin-bottom:25px}.zoom{width:min(98vw,1600px);height:94vh;border:0;border-radius:12px;padding:18px;background:#fff;max-width:98vw;max-height:96vh}.zoom::backdrop{background:#142b46bb}.zoom-head{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;margin-bottom:12px}.zoom-head button{border:1px solid var(--line);border-radius:6px;padding:7px 14px;background:#edf3f8;font:inherit;cursor:pointer}.zoom-head label{display:flex;gap:7px;align-items:center}.zoom-head input{width:130px}.zoom-scroll{height:calc(100% - 55px);overflow:auto;background:#edf2f6;padding:12px}.zoom-scroll img{max-width:none;margin:0 auto;cursor:default;border-radius:0}.zoom-title{color:var(--muted)}
+@media(max-width:600px){body{padding:24px 18px 45px;font-size:16px;line-height:1.9}h1{font-size:27px}h2{font-size:22px;margin-top:40px}h3{font-size:18px}pre{padding:14px;font-size:13px}th,td{font-size:14px;padding:8px 10px}nav{padding:15px 17px}.zoom{padding:10px}.zoom-head{flex-wrap:wrap}.zoom-title{display:none}.zoom-scroll{height:calc(100% - 55px)}}
+</style>
+</head>
+<body>
+
+<nav id="TOC" role="doc-toc">
+<details><summary>阅读目录（点击展开）</summary><ul>
+<li><a href="#音频重采样滤波与多声道混合看图手算跑-demo" id="toc-音频重采样滤波与多声道混合看图手算跑-demo">音频重采样、滤波与多声道混合：看图、手算、跑
+Demo</a>
+<ul>
+<li><a href="#1-重采样换一套记录时间点" id="toc-1-重采样换一套记录时间点">1. 重采样：换一套记录时间点</a></li>
+<li><a href="#2-升采样是的计算新点叫插值" id="toc-2-升采样是的计算新点叫插值">2.
+升采样：是的，计算新点叫插值</a></li>
+<li><a href="#3-降采样先防混叠再减少点数" id="toc-3-降采样先防混叠再减少点数">3.
+降采样：先防混叠，再减少点数</a></li>
+<li><a href="#4-低通滤波保留慢变化削弱快变化" id="toc-4-低通滤波保留慢变化削弱快变化">4.
+低通滤波：保留慢变化，削弱快变化</a></li>
+<li><a href="#5-高通滤波削弱慢变化保留快变化" id="toc-5-高通滤波削弱慢变化保留快变化">5.
+高通滤波：削弱慢变化，保留快变化</a></li>
+<li><a href="#6-多声道混合同一时间的值加权相加" id="toc-6-多声道混合同一时间的值加权相加">6.
+多声道混合：同一时间的值加权相加</a></li>
+<li><a href="#7-六个概念放在一起" id="toc-7-六个概念放在一起">7.
+六个概念放在一起</a></li>
+<li><a href="#8-动手运行与实际音频转换" id="toc-8-动手运行与实际音频转换">8. 动手运行与实际音频转换</a></li>
+<li><a href="#9-查证来源" id="toc-9-查证来源">9. 查证来源</a></li>
+</ul></li>
+</ul>
+</details></nav>
+<h1 id="音频重采样滤波与多声道混合看图手算跑-demo">音频重采样、滤波与多声道混合：看图、手算、跑
+Demo</h1><p class="meta">6个概念 · 8张计算图 · 手算与Python实验 · 2026-10-14<br>图片可点击放大。<br><a href="../index.html">返回文档首页</a> · <a href="audio-resampling-filtering-mixing.md" download>下载 Markdown</a> · <a href="audio-resampling-assets/audio_demo.py" download>下载 Python Demo</a></p>
+<p>这份笔记回答六个问题：重采样是什么；升采样如何插值；降采样是否也需要插值；低通、高通如何逐点计算；多声道如何合成一路。</p>
+<p><strong>先记住：PCM
+是按时间排列的一串振幅值。重采样改变时间网格，滤波改变频率成分，混音把同一时刻的多个声道加权相加。</strong></p>
+<p>所有图由配套 Python 程序按公式计算生成。图中的连线帮助观察，真正的
+PCM 数据是离散采样点。为便于手算，例子大多使用归一化浮点振幅；16
+位有符号 PCM 的整数范围是 −32768～32767。</p>
+<h2 id="1-重采样换一套记录时间点">1. 重采样：换一套记录时间点</h2>
+<h3 id="通俗理解">通俗理解</h3>
+<p>原来每秒记录 16000 个振幅值，现在每秒记录 48000
+个。记录更密了，但描述的仍然是相同时间内的声音。</p>
+<p>升采样和降采样都是重采样。一般音频转换要保持时长，以及保留下来的声音成分的音调。</p>
+<h3 id="demo-计算同一秒点数不同">Demo 计算：同一秒，点数不同</h3>
+<pre class="text"><code>采样间隔 Δt = 1 / 采样率
+采样点数 N = 时长 × 采样率
+
+16 kHz：Δt = 1/16000 秒 = 62.5 μs
+48 kHz：Δt = 1/48000 秒 ≈ 20.8333 μs
+
+1 秒音频：16000 点 → 48000 点
+时长核对：16000/16000 = 48000/48000 = 1 秒</code></pre>
+<p>这里的“点数”是每个声道的点数。双声道一秒有 16000
+个采样帧，每帧包含左右两个值，共 32000 个数值。</p>
+<p><img src="audio-resampling-assets/01_resampling_grid.png" alt="相同1 ms内，16 kHz与48 kHz的采样点密度对比" /></p>
+<p>**读图：**两行都是同一个 1 kHz 余弦函数；横轴范围一样，48 kHz
+的点更密。这里画已知函数是为了说明时间网格；处理录音时，算法只有旧采样值，需要估计新时间点的值。</p>
+<p>注意，1 秒的离散点通常位于 <code>[0, 1秒)</code>：第一个点在
+0，最后一个在 <code>1−1/fs</code>。文件时长按 <code>N/fs</code>
+计算，不是按第一点与最后一点的距离计算。</p>
+<h3 id="一个常见误区">一个常见误区</h3>
+<p>把 16000 个点原封不动标记成 48 kHz，播放时长会变为
+<code>16000/48000 = 1/3 秒</code>，播放速度和音调都会改变。这是修改播放解释方式，没有完成重采样。</p>
+<h2 id="2-升采样是的计算新点叫插值">2. 升采样：是的，计算新点叫插值</h2>
+<h3 id="通俗理解-1">通俗理解</h3>
+<p>已知两个时间点的振幅，估计它们中间某个时间的振幅，就叫插值。最容易理解的是连接两个点，沿直线取值。</p>
+<h3 id="demo-计算16-khz--48-khz">Demo 计算：16 kHz → 48 kHz</h3>
+<p>取相邻的两个旧点：</p>
+<table>
+<thead>
+<tr class="header">
+<th>时间</th>
+<th style="text-align: right;">旧振幅</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0 μs</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="even">
+<td>62.5 μs</td>
+<td style="text-align: right;">0.9</td>
+</tr>
+</tbody>
+</table>
+<p>升到 48 kHz 后，间隔变为约 20.8333 μs，因此中间增加两个点：</p>
+<pre class="text"><code>新值 = 左端值 × (1−比例) + 右端值 × 比例
+
+第1个新点：比例 = 1/3
+值 = 0×(2/3) + 0.9×(1/3) = 0.3
+
+第2个新点：比例 = 2/3
+值 = 0×(1/3) + 0.9×(2/3) = 0.6
+
+局部序列：0.0 → 0.3 → 0.6 → 0.9</code></pre>
+<p><img src="audio-resampling-assets/02_upsampling_interpolation.png" alt="升采样线性插值的时间位置与手算结果" /></p>
+<p>**读图：**蓝色是已有点，橙色是估计的新点。这个局部例子包含两端点，不能用它的“2点变4点”推断整个文件的倍率；整个文件的点数仍按时长与采样率计算。</p>
+<h3 id="实际音频里怎么做">实际音频里怎么做</h3>
+<p>线性插值适合入门。音频处理中常用带限插值，例如基于 sinc 的有限长度
+FIR
+近似。整数倍升采样在数学上也可以表示为“插零，再用插值低通滤波器计算”；插零只是中间步骤，输出不会保持那些零值。[1]</p>
+<p>SciPy 的 <code>resample_poly</code> 使用升采样、低通
+FIR、降采样这一多速率处理框架。[1]</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.signal <span class="im">import</span> resample_poly</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>y_48k <span class="op">=</span> resample_poly(x_16k, up<span class="op">=</span><span class="dv">3</span>, down<span class="op">=</span><span class="dv">1</span>)</span></code></pre></div>
+<p><strong>增加点数不会恢复原录音中已经丢失的细节。</strong>
+它让同一份信号适配另一套采样网格。</p>
+<h2 id="3-降采样先防混叠再减少点数">3. 降采样：先防混叠，再减少点数</h2>
+<h3 id="通俗理解-2">通俗理解</h3>
+<p>点少了，能准确描述的最高频率也降低了。把 48 kHz 降到 16
+kHz，输出奈奎斯特频率是
+<code>16000/2 = 8000 Hz</code>。在抽点前，需要充分削弱输出无法表示的高频。</p>
+<p>工程滤波器不是一把在 8 kHz
+处瞬间切断的刀，需要过渡带与足够的阻带衰减。下面的三点低通只用于手算，不能承担合格的
+48 kHz → 16 kHz 防混叠任务。[1][2]</p>
+<h3 id="demo-a逐点计算再每3点取1点">Demo A：逐点计算，再每3点取1点</h3>
+<p>用一个方便手算的中心对齐低通：</p>
+<pre class="text"><code>z[n] = 0.25x[n−1] + 0.5x[n] + 0.25x[n+1]
+y[m] = z[3m]</code></pre>
+<p><code>x</code> 是原数据，<code>z</code> 是滤波结果，<code>y</code>
+是降采样结果。假设输入是：</p>
+<pre class="text"><code>n：  0    1    2    3    4     5     6     7    8
+x：0.0  0.4  0.8  0.4  0.0  −0.4  −0.8  −0.4  0.0</code></pre>
+<p>边界以 0 补齐，选择 <code>n=0、3、6</code>：</p>
+<table>
+<thead>
+<tr class="header">
+<th>保留位置</th>
+<th>先计算滤波值</th>
+<th style="text-align: right;">输出</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>n=0</td>
+<td>0.25×0 + 0.5×0 + 0.25×0.4</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="even">
+<td>n=3</td>
+<td>0.25×0.8 + 0.5×0.4 + 0.25×0</td>
+<td style="text-align: right;">0.4</td>
+</tr>
+<tr class="odd">
+<td>n=6</td>
+<td>0.25×(−0.4) + 0.5×(−0.8) + 0.25×(−0.4)</td>
+<td style="text-align: right;">−0.6</td>
+</tr>
+</tbody>
+</table>
+<p>得到 <code>[0.1, 0.4, −0.6]</code>。若直接抽原数据，会得到
+<code>[0.0, 0.4, −0.8]</code>。</p>
+<p><img src="audio-resampling-assets/03_downsampling_calculation.png" alt="降采样手算：原数据、滤波结果、抽取结果" /></p>
+<p>**读图：**先重新计算各点的振幅，再只保留三个时间位置。整数倍抽取不一定需要在两个时间点之间插值，但滤波依然涉及计算。</p>
+<p>这套中心对齐公式用到了未来点
+<code>x[n+1]</code>，适合离线教学。实时实现需要等待一个采样间隔，或改成具有延迟的因果实现。</p>
+<h3 id="demo-b为什么不能直接删点">Demo B：为什么不能直接删点</h3>
+<p>构造一段 48 kHz 音频：</p>
+<pre class="text"><code>x(t) = 0.6cos(2π×1000×t) + 0.3cos(2π×10000×t)</code></pre>
+<p>它包含 1 kHz 和 10 kHz。直接每3点取1点后，新采样率是 16 kHz。对其中的
+10 kHz 分量，在新采样位置有：</p>
+<pre class="text"><code>cos(2π×10000×m/16000)
+= cos(2πm − 2π×6000×m/16000)
+= cos(2π×6000×m/16000)</code></pre>
+<p><strong>新采样点无法区分这个10 kHz余弦与6 kHz余弦，频谱中出现6
+kHz，这就是混叠。</strong> 它不是把原来的10 kHz正确保留下来了。</p>
+<p><img src="audio-resampling-assets/04_aliasing_comparison.png" alt="48 kHz降至16 kHz：直接抽点产生6 kHz混叠，防混叠重采样抑制该成分" /></p>
+<p>**读图：**第一行原频谱有 1 kHz、10 kHz；第二行直接抽取变成 1 kHz、6
+kHz；第三行通过真实 FIR 重采样，保留 1 kHz，先削弱原来的 10
+kHz，避免明显折返。</p>
+<p>这里纵轴是正弦分量的<strong>峰值振幅</strong>，不是功率，也不是响度。图来自中间1秒的数据，避开起止边界瞬态。</p>
+<p>配套程序的实际输出如下。有限长度滤波器仍有很小的残留，不是数学上的绝对清零：</p>
+<table>
+<thead>
+<tr class="header">
+<th>输出中的频率</th>
+<th style="text-align: right;">直接抽点</th>
+<th style="text-align: right;">防混叠重采样</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1 kHz</td>
+<td style="text-align: right;">0.600000</td>
+<td style="text-align: right;">0.600004</td>
+</tr>
+<tr class="even">
+<td>6 kHz混叠</td>
+<td style="text-align: right;">0.300000</td>
+<td style="text-align: right;">0.000258</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 实际处理方式：内部包含防混叠低通</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>y_16k <span class="op">=</span> resample_poly(x_48k, up<span class="op">=</span><span class="dv">1</span>, down<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>                      window<span class="op">=</span>(<span class="st">&#39;kaiser&#39;</span>, <span class="fl">8.6</span>))</span></code></pre></div>
+<h3 id="demo-c441-khz--16-khz也需要插值吗">Demo C：44.1 kHz → 16
+kHz，也需要插值吗</h3>
+<p><strong>通常需要，因为新时间点大多不与旧时间点对齐。</strong></p>
+<pre class="text"><code>新第m点的时间：t = m / 16000
+它在旧网格的位置：位置 = t × 44100 = m × 2.75625
+
+m=0：位置0
+m=1：位置2.75625，落在旧第2点和第3点之间
+m=2：位置5.5125</code></pre>
+<p>假设低通处理后的第2、3点分别是 0.8 和
+0.4，用线性插值演示位置2.75625的计算：</p>
+<pre class="text"><code>比例 = 2.75625−2 = 0.75625
+新值 = 0.8×0.24375 + 0.4×0.75625 = 0.4975</code></pre>
+<p><img src="audio-resampling-assets/08_fractional_resampling.png" alt="非整数比例降采样：新点位于原采样点之间" /></p>
+<p>**读图：**橙点位于旧第2、3点之间。线性公式只解释新点的位置与估算方法；实际转换使用合适的带限滤波插值，而不是“先随便插值，再等混叠出现”。</p>
+<pre class="text"><code>16000/44100 = 160/441
+理论结构：升采样160倍 → 低通滤波 → 降采样441倍</code></pre>
+<p>多相实现会跳过无用计算，不必真的保存一份160倍大的中间数组。[1]</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>y_16k <span class="op">=</span> resample_poly(x_44100, up<span class="op">=</span><span class="dv">160</span>, down<span class="op">=</span><span class="dv">441</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 本实验：4410点/44100 Hz = 1600点/16000 Hz = 0.1秒</span></span></code></pre></div>
+<h2 id="4-低通滤波保留慢变化削弱快变化">4.
+低通滤波：保留慢变化，削弱快变化</h2>
+<h3 id="通俗理解-3">通俗理解</h3>
+<p>“低通”的低，指低频。低频成分随时间变化较慢，高频成分变化较快。它并不是保留小音量、删除大音量。</p>
+<p>数字滤波器通过当前点及邻近点的加权计算，让不同频率受到不同的增益。许多实现直接处理
+PCM 数组，不需要先做 FFT。FFT 可以帮助查看它改变了哪些频率成分。</p>
+<h3 id="demo-计算三个点如何得到一个输出点">Demo
+计算：三个点如何得到一个输出点</h3>
+<p>继续使用三点低通：</p>
+<pre class="text"><code>低通[n] = 0.25x[n−1] + 0.5x[n] + 0.25x[n+1]
+
+输入局部序列：[0.2, 0.8, 0.2, 0.8, 0.2]
+
+n=1：0.25×0.2 + 0.5×0.8 + 0.25×0.2 = 0.5
+n=2：0.25×0.8 + 0.5×0.2 + 0.25×0.8 = 0.5
+n=3：0.25×0.2 + 0.5×0.8 + 0.25×0.2 = 0.5</code></pre>
+<p>本例把快速交替的波动压掉，留下中间三个输出点
+<code>[0.5, 0.5, 0.5]</code>。边界没有参与这项手算。</p>
+<h3 id="为什么同一公式能区分高低频">为什么同一公式能区分高低频</h3>
+<p>对于常量 <code>[0.5,0.5,0.5,…]</code>，输出仍是 0.5；对于逐点交替的
+<code>[1,−1,1,−1,…]</code>，内部输出变为
+0。一个变化最慢，一个变化最快，结果明显不同。</p>
+<p>这套中心对齐滤波器的振幅增益是：</p>
+<pre class="text"><code>低通增益 G(f) = cos²(πf/fs)
+输出分量振幅 = 输入分量振幅 × G(f)</code></pre>
+<p>该公式由本例三项加权直接推导。<code>fs=16000 Hz</code> 时：</p>
+<table>
+<thead>
+<tr class="header">
+<th>分量</th>
+<th style="text-align: right;">输入振幅</th>
+<th style="text-align: right;">低通增益</th>
+<th style="text-align: right;">输出振幅约</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>200 Hz</td>
+<td style="text-align: right;">0.6</td>
+<td style="text-align: right;">0.998459</td>
+<td style="text-align: right;">0.5991</td>
+</tr>
+<tr class="even">
+<td>7000 Hz</td>
+<td style="text-align: right;">0.3</td>
+<td style="text-align: right;">0.038060</td>
+<td style="text-align: right;">0.0114</td>
+</tr>
+</tbody>
+</table>
+<p><img src="audio-resampling-assets/05_lowpass.png" alt="三点低通的实际波形、频谱与频率增益" /></p>
+<p>**读图：**灰线是输入，蓝线是输出；200 Hz 几乎保留，7 kHz
+明显削弱。第三行显示其逐渐变化的频率响应，而不是某个频率之后全部瞬间归零。</p>
+<p>简单平均或短加权平均可以说明平滑原理，但频带分离能力有限。实际截止频率、过渡带和抑制程度，需要专门设计滤波器。[2]</p>
+<h2 id="5-高通滤波削弱慢变化保留快变化">5.
+高通滤波：削弱慢变化，保留快变化</h2>
+<h3 id="通俗理解-4">通俗理解</h3>
+<p>“高通”的高，指高频。常见用途是去除直流偏置、削弱低频轰鸣。它也会削弱同一频段内的有用声音，不能自动判断哪部分是噪声。</p>
+<h3 id="demo-计算原值减去对齐的低通结果">Demo
+计算：原值减去对齐的低通结果</h3>
+<p>对上面这套中心对齐低通，可以构造互补高通：[3]</p>
+<pre class="text"><code>高通[n] = x[n] − 低通[n]
+        = −0.25x[n−1] + 0.5x[n] − 0.25x[n+1]</code></pre>
+<p>沿用输入 <code>[0.2, 0.8, 0.2, 0.8, 0.2]</code>：</p>
+<table>
+<thead>
+<tr class="header">
+<th>n</th>
+<th style="text-align: right;">输入x[n]</th>
+<th style="text-align: right;">低通结果</th>
+<th style="text-align: right;">高通=x−低通</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td style="text-align: right;">0.8</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">0.3</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td style="text-align: right;">0.2</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">−0.3</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td style="text-align: right;">0.8</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">0.3</td>
+</tr>
+</tbody>
+</table>
+<p>低通留下平滑部分，高通留下围绕平滑部分的快速波动。在本例中，两个结果相加能恢复原值。</p>
+<p><strong>“原信号减低通”成立的前提是时间与相位对齐。</strong>
+如果实际低通有延迟，应把原信号延迟到同一时间位置再相减，不能直接逐点相减不同时间的数据。也不是任意低通相减都会得到理想高通。</p>
+<h3 id="高频为什么更容易通过">高频为什么更容易通过</h3>
+<p>对于这套教学滤波器：</p>
+<pre class="text"><code>高通增益 G(f) = 1 − cos²(πf/fs) = sin²(πf/fs)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>分量</th>
+<th style="text-align: right;">输入振幅</th>
+<th style="text-align: right;">高通增益</th>
+<th style="text-align: right;">输出振幅约</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>200 Hz</td>
+<td style="text-align: right;">0.6</td>
+<td style="text-align: right;">0.001541</td>
+<td style="text-align: right;">0.0009</td>
+</tr>
+<tr class="even">
+<td>7000 Hz</td>
+<td style="text-align: right;">0.3</td>
+<td style="text-align: right;">0.961940</td>
+<td style="text-align: right;">0.2886</td>
+</tr>
+</tbody>
+</table>
+<p><img src="audio-resampling-assets/06_highpass.png" alt="三点高通的实际波形、频谱与频率增益" /></p>
+<p>**读图：**200 Hz 明显削弱，7 kHz
+大部分保留。对常量输入，三个系数之和为0，内部输出为0，这就是去除直流成分。</p>
+<h2 id="6-多声道混合同一时间的值加权相加">6.
+多声道混合：同一时间的值加权相加</h2>
+<h3 id="通俗理解-5">通俗理解</h3>
+<p>左右声道分别是一串 PCM
+值。双声道变单声道，最直接的方式是对同一时刻的两个值求平均。FFmpeg 的
+<code>pan</code> 支持明确指定各输入声道的混合权重。[4]</p>
+<pre class="text"><code>M[n] = 0.5L[n] + 0.5R[n]</code></pre>
+<p>它与滤波的关键区别是：这里从<strong>不同声道、同一时间</strong>取值；前面的滤波从<strong>同一声道、邻近时间</strong>取值。</p>
+<h3 id="demo-计算五个采样时刻">Demo 计算：五个采样时刻</h3>
+<table>
+<thead>
+<tr class="header">
+<th>n</th>
+<th style="text-align: right;">左L</th>
+<th style="text-align: right;">右R</th>
+<th style="text-align: right;">M=0.5L+0.5R</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.2</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td style="text-align: right;">0.6</td>
+<td style="text-align: right;">0.2</td>
+<td style="text-align: right;">0.4</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">−0.2</td>
+<td style="text-align: right;">−0.1</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td style="text-align: right;">−0.6</td>
+<td style="text-align: right;">0.6</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">0.0</td>
+</tr>
+</tbody>
+</table>
+<p><img src="audio-resampling-assets/07_channel_mix.png" alt="左右声道与混合结果：相加也可能发生相消" /></p>
+<p>**读图：**第3号点左右相反，平均后为0。混合不一定变响，声道间的相位与延迟会影响结果。</p>
+<p>权重也可以换成 <code>M=0.8L+0.2R</code>：第1号点变为
+<code>0.8×0.6+0.2×0.2=0.52</code>，左声道贡献更大。</p>
+<h3 id="为什么需要权重与足够宽的中间类型">为什么需要权重与足够宽的中间类型</h3>
+<p>若直接相加 <code>0.8+0.7=1.5</code>，写入通常以约 <code>[-1,1]</code>
+表示的 PCM 范围时会削波。各乘0.5，得到0.75。</p>
+<p>对16位PCM，<code>30000+30000=60000</code> 已超过 int16 范围。先转换成
+float 或 int32，再相加并除以2，最后转换回 int16。不要先用 int16
+相加让它溢出。</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>mono_float <span class="op">=</span> stereo_int16.astype(<span class="st">&#39;float64&#39;</span>).mean(axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>mono_int16 <span class="op">=</span> mono_float.<span class="bu">round</span>().clip(<span class="op">-</span><span class="dv">32768</span>, <span class="dv">32767</span>).astype(<span class="st">&#39;int16&#39;</span>)</span></code></pre></div>
+<p>对于麦克风阵列，简单平均不等于波束形成；波束形成通常还需要方向对应的延迟、权重或更复杂处理。带有扬声器参考声道的多通道录音，也要先确认每一路的用途，再决定混哪些通道。</p>
+<h2 id="7-六个概念放在一起">7. 六个概念放在一起</h2>
+<table>
+<thead>
+<tr class="header">
+<th>处理</th>
+<th>主要改变</th>
+<th>点数/声道数</th>
+<th>核心计算</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>重采样</td>
+<td>采样时间网格</td>
+<td>每声道点数变化</td>
+<td>在新时间网格计算值</td>
+</tr>
+<tr class="even">
+<td>升采样</td>
+<td>点更密</td>
+<td>点数增加</td>
+<td>插值，常结合低通</td>
+</tr>
+<tr class="odd">
+<td>降采样</td>
+<td>点更稀</td>
+<td>点数减少</td>
+<td>防混叠低通，再抽取/插值</td>
+</tr>
+<tr class="even">
+<td>低通</td>
+<td>削弱高频成分</td>
+<td>通常保持点数、声道数</td>
+<td>邻近时间点加权</td>
+</tr>
+<tr class="odd">
+<td>高通</td>
+<td>削弱低频成分</td>
+<td>通常保持点数、声道数</td>
+<td>邻近时间点加权</td>
+</tr>
+<tr class="even">
+<td>多声道混合</td>
+<td>合成声道内容</td>
+<td>可减少声道数</td>
+<td>同一时间、不同声道加权</td>
+</tr>
+</tbody>
+</table>
+<p>表中滤波保持点数，指按同长度输出的常见处理约定。卷积也可选择输出完整尾部或仅输出有效区间，因此代码里的长度还取决于边界处理方式。</p>
+<h2 id="8-动手运行与实际音频转换">8. 动手运行与实际音频转换</h2>
+<h3 id="运行配套实验">运行配套实验</h3>
+<p>文件 <code>audio_demo.py</code> 会生成全部8张图和
+<code>calculation_results.json</code>，并核对插值、滤波、混音、混叠以及转换点数。</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> pip install numpy scipy matplotlib</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> audio_demo.py <span class="at">--out</span> demo_output</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 如系统没有中文字体，指定已有中文字体的完整路径：</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> audio_demo.py <span class="at">--out</span> demo_output <span class="at">--font</span> /path/to/NotoSansCJKsc-Regular.otf</span></code></pre></div>
+<p>实验里的三点低通/高通与防混叠 FIR
+是两种不同用途：前者便于手算，后者演示实际降采样。没有中文字体时计算依然可以运行，但图片中文字可能无法正常显示。</p>
+<h3 id="用ffmpeg处理自己的音频">用FFmpeg处理自己的音频</h3>
+<p>把普通双声道音频明确按左右各0.5混合，再重采样成16
+kHz、16位、单声道WAV：[4]</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ffmpeg</span> <span class="at">-i</span> input_stereo.wav <span class="dt">\</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-af</span> <span class="st">&quot;pan=mono|c0=0.5*c0+0.5*c1,aresample=16000&quot;</span> <span class="dt">\</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-c:a</span> pcm_s16le output_16k_mono.wav</span></code></pre></div>
+<p>这个命令用 <code>pan</code> 明确规定混合公式，用
+<code>aresample</code> 执行重采样。它输出带文件头的
+WAV，内部编码是16位小端有符号
+PCM。输入若为多麦克风及参考信号，应先按通道用途选择与映射，不能把所有声道直接平均。</p>
+<h2 id="9-查证来源">9. 查证来源</h2>
+<p>查阅日期：2026-10-14。概念与工具行为参考以下原始教材、官方文档；数组、图示和手算例子由配套程序独立构造。</p>
+<ol type="1">
+<li><a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.resample_poly.html">SciPy
+官方：resample_poly</a> —
+升采样、低通FIR、降采样的处理结构与多相实现。</li>
+<li><a href="https://www.dspguide.com/CH15.PDF">Steven W. Smith《DSP
+Guide》第15章</a> —
+平均滤波的逐点计算、平滑作用与频率选择性的限制。</li>
+<li><a href="https://www.dspguide.com/CH14.PDF">Steven W. Smith《DSP
+Guide》第14章</a> — 频率响应、低通转高通的谱反转方法与对齐条件。</li>
+<li><a href="https://ffmpeg.org/ffmpeg-filters.html#pan">FFmpeg
+官方：Filters</a> — <code>pan</code>声道权重混合；同页的<a href="https://ffmpeg.org/ffmpeg-filters.html#aresample">aresample</a>说明实际重采样。</li>
+</ol>
+<dialog class="zoom" id="imageZoom"><div class="zoom-head"><span class="zoom-title">查看计算图</span><label>缩放 <input id="zoomScale" type="range" min="100" max="300" value="100" step="25"></label><button id="closeZoom">关闭</button></div><div class="zoom-scroll"><img id="zoomImage" alt="放大图"></div></dialog>
+<script>
+const dlg=document.getElementById('imageZoom'),zi=document.getElementById('zoomImage'),scale=document.getElementById('zoomScale');
+document.querySelectorAll('body > figure img, body > p img').forEach(img=>{img.setAttribute('tabindex','0');img.setAttribute('role','button');img.setAttribute('aria-label','放大：'+img.alt);const open=()=>{zi.src=img.src;zi.alt=img.alt;scale.value=100;zi.style.width='100%';dlg.showModal()};img.addEventListener('click',open);img.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}})});
+scale.oninput=()=>{zi.style.width=scale.value+'%'};document.getElementById('closeZoom').onclick=()=>dlg.close();
+</script></body>
+</html>
