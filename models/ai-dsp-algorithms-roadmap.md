@@ -12,7 +12,7 @@
 | 04 | 向量、矩阵、概率与梯度 | 待写 |
 | 05 | 卷积、冲激响应与 FIR 滤波 | 待写 |
 | 06 | DFT、FFT、频谱与窗函数 | 待写 |
-| 07 | STFT、Mel 频谱与音频特征 | 待写 |
+| 07 | STFT、Mel 频谱与音频特征 | [完整 Fbank 逐步计算教程](../speech/fbank-feature-extraction-complete.html) · [Fbank 原理](../speech/fbank-principles.html) |
 | 08 | 线性回归、损失函数与梯度下降 | 待写 |
 | 09 | 神经网络、反向传播与优化 | 待写 |
 | 10 | CNN、注意力与 Transformer | 待写 |
