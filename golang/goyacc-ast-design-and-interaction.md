@@ -66,7 +66,7 @@ main → yyParse(lexer) → lexer.Lex() → Token
 | yyLexer：Lex(*yySymType) int；Error(string) | 必须由自定义 Lexer 实现；Lex 每次返回一个 Token |
 | yyParse(yylex yyLexer) int | goyacc 生成；返回解析状态码（0 表示成功） |
 | %union、%token、%type | 规定语义值字段、Token、非终结符使用的字段 |
-| $1、$2、$3、$$ | 分别是产生式右侧语义值、当前归约结果 |
+| `$1`、`$2`、`$3`、`$$` | 分别是产生式右侧语义值、当前归约结果 |
 | top: expr | 常用于将最终 expr 保存为根节点或计算结果 |
 
 ~~~yacc
