@@ -32,6 +32,22 @@ def extract_title(source: str, fallback: str) -> str:
 def render_page(title: str, body: str, md_href: str) -> str:
     safe_title = html.escape(title)
     safe_md_href = html.escape(md_href, quote=True)
+    math_script = ""
+    if 'class="arithmatex"' in body:
+        math_script = r"""<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: true,
+    processEnvironments: true
+  },
+  options: { ignoreHtmlClass: '.*', processHtmlClass: 'arithmatex' },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"
+  onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js'"></script>"""
     mermaid_script = ""
     if 'class="language-mermaid"' in body:
         mermaid_script = """<script type="module">
@@ -112,6 +128,8 @@ for (const [index, code] of Array.from(document.querySelectorAll('pre > code.lan
     background: #f6f8fa;
   }}
   pre code {{ padding: 0; background: transparent; }}
+  div.arithmatex {{ overflow-x: auto; margin: 24px 0; padding: 8px 0; }}
+  .arithmatex mjx-container[display="true"] {{ margin: 0 !important; }}
   .mermaid-diagram {{ overflow-x: auto; margin: 24px 0; }}
   .mermaid-diagram svg {{ display: block; max-width: none !important; margin: 0 auto; }}
   img {{ display: block; max-width: 100%; height: auto; margin: 20px auto; }}
@@ -120,6 +138,7 @@ for (const [index, code] of Array.from(document.querySelectorAll('pre > code.lan
   blockquote {{ margin-left: 0; padding-left: 16px; border-left: 4px solid var(--border); color: var(--muted); }}
   @media (max-width: 640px) {{ article {{ padding: 24px 20px; }} h1 {{ font-size: 26px; }} }}
 </style>
+{math_script}
 </head>
 <body>
 <main class=\"page\">
@@ -163,7 +182,8 @@ def main() -> None:
             title = extract_title(source, md_path.stem.replace("-", " ").title())
             body = markdown.markdown(
                 source,
-                extensions=["fenced_code", "tables", "sane_lists"],
+                extensions=["fenced_code", "tables", "sane_lists", "pymdownx.arithmatex"],
+                extension_configs={"pymdownx.arithmatex": {"generic": True}},
                 output_format="html5",
             )
             output_html.parent.mkdir(parents=True, exist_ok=True)
