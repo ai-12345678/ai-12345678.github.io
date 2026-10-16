@@ -6,6 +6,8 @@
 
 ![SSH Bridge 的 stdin/stdout、TTY/PTY 和 Pipe 工作原理](./images/ssh-bridge-stdio.svg)
 
+**一句话记忆：** Terminal 创建 PTY（Master/Slave）并启动 Shell，将 Shell 进程的 `stdin（FD 0）`、`stdout（FD 1）`、`stderr（FD 2）` 三个标准文件描述符默认连接到 PTY Slave；Shell 再启动其他子进程，子进程默认继承 Shell 的标准文件描述符，但可以通过管道（`|`）或重定向（`<`、`>`）改变其指向，使其连接到 Pipe、文件等。
+
 [单独打开原理图](./images/ssh-bridge-stdio.svg)
 
 这张图要说明三个概念：
