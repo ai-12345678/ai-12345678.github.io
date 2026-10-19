@@ -1,5 +1,11 @@
 # SSH ProxyCommand + Auth 访问架构
 
+## ProxyCommand 的本质
+
+`ProxyCommand` 的本质就是 SSH 客户端启动一个子进程，然后通过该进程的 `stdin` 和 `stdout` 进行双向通信，代替直接建立 TCP Socket 连接。
+
+SSH 客户端把要发送的 SSH 协议数据写入子进程的 `stdin`，并从子进程的 `stdout` 读取返回的 SSH 协议数据。子进程负责建立或接入通往目标 SSH 服务的通道；底层仍可以使用 TCP 连接。
+
 ## 架构图
 
 ```text
