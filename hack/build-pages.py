@@ -11,6 +11,8 @@ Rules:
 from __future__ import annotations
 
 import html
+import os
+import re
 import shutil
 from pathlib import Path
 
@@ -19,7 +21,7 @@ import markdown
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "_site"
 CONTENT_DIRS = (ROOT / "linux", ROOT / "agents", ROOT / "lang", ROOT / "golang", ROOT / "models", ROOT / "network", ROOT / "asm", ROOT / "speech", ROOT / "webrtc", ROOT / "cpp", ROOT / "tcp")
-PUBLISH_ENTRIES = ("index.html", "kubernetes", "linux", "agents", "lang", "golang", "models", "network", "asm", "speech", "webrtc", "cpp", "tcp")
+PUBLISH_ENTRIES = ("index.html", "assets", "kubernetes", "linux", "agents", "lang", "golang", "models", "network", "asm", "speech", "webrtc", "cpp", "tcp")
 
 
 def extract_title(source: str, fallback: str) -> str:
@@ -167,6 +169,30 @@ def copy_publish_entries() -> None:
             shutil.copy2(source, target)
 
 
+PDF_ASSET = Path("assets") / "pdf-export.js"
+
+
+def inject_pdf_export() -> int:
+    """Attach the shared PDF-download helper to every published HTML page."""
+    injected = 0
+    for html_path in SITE.rglob("*.html"):
+        page = html_path.read_text(encoding="utf-8")
+        if 'pdf-export.js"></script>' in page:
+            continue
+
+        # Relative URLs also work when the site is previewed under a subpath.
+        script_src = os.path.relpath(SITE / PDF_ASSET, html_path.parent).replace(os.sep, "/")
+        tag = f'<script defer src="{html.escape(script_src, quote=True)}"></script>'
+        closing_body = re.search(r"</body\s*>", page, flags=re.IGNORECASE)
+        if closing_body:
+            page = page[:closing_body.start()] + tag + "\n" + page[closing_body.start():]
+        else:
+            page += "\n" + tag + "\n"
+        html_path.write_text(page, encoding="utf-8")
+        injected += 1
+    return injected
+
+
 def main() -> None:
     if SITE.exists():
         shutil.rmtree(SITE)
@@ -192,7 +218,8 @@ def main() -> None:
             )
             generated += 1
 
-    print(f"Pages build complete: generated={generated}, output={SITE}")
+    injected = inject_pdf_export()
+    print(f"Pages build complete: generated={generated}, pdf_export={injected}, output={SITE}")
 
 
 if __name__ == "__main__":
