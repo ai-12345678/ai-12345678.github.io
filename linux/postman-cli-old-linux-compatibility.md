@@ -422,6 +422,20 @@ chmod +x /home/python3-compat.sh
 
 ### 4. 验证 pip 的 manylinux 识别与 PyTorch 安装
 
+**补充 demo：分别指定动态加载器与库搜索路径。** 以下代码可放入包装脚本，`PYTHON_BIN` 按实际 Python 路径设置；这里沿用前文已激活的 Conda 环境：
+
+~~~bash
+#!/usr/bin/env bash
+
+PYTHON_BIN="$CONDA_PREFIX/bin/python3.12"
+
+/home/gcc-10/lib64/ld-linux-x86-64.so.2 \
+  --library-path /home/gcc-12/lib64 \
+  "${PYTHON_BIN}" "$@"
+~~~
+
+`"$@"` 会将包装脚本收到的参数逐个透传给 Python，例如 `-m pip debug --verbose`。加载器路径与库搜索目录可以分别指定，但加载器与实际加载的 `libc.so.6` 必须兼容，不能仅凭目录名判断版本。
+
 PyTorch 等 Linux Wheel 往往带有 manylinux_x_y_x86_64 标签。例如 manylinux_2_28_x86_64 表示要求 GLIBC 2.28 或更高。仅仅使用 Python 3.12 并不代表满足该要求。
 
 ~~~bash
