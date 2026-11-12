@@ -436,7 +436,7 @@ fi
 PYTHON_BIN="$CONDA_PREFIX/bin/python3.12"
 
 /home/gcc-10/lib64/ld-linux-x86-64.so.2 \
-  --library-path /home/gcc-12/lib64 \
+  --library-path /home/gcc-12/lib64:/lib64:/usr/lib64 \
   "${PYTHON_BIN}" "$@"
 SH
 
