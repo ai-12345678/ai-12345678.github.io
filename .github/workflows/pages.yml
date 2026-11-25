@@ -41,6 +41,27 @@ jobs:
       - name: Build site
         run: python hack/build-pages.py
 
+      - name: Download and publish front-desktop-tools
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo '::error::Configure PRIVATE_REPO_TOKEN with read access to front-desktop-tools.'
+            exit 1
+          fi
+          archive_dir=$(mktemp -d)
+          trap 'rm -rf "$archive_dir"' EXIT
+          repo=ai-12345678/front-desktop-tools
+          tag=$(gh release view --repo "$repo" --json tagName --jq .tagName)
+          echo "Publishing front-desktop-tools $tag"
+          gh release download "$tag" --repo "$repo" --pattern dist.zip --output "$archive_dir/dist.zip"
+          mkdir -p "$archive_dir/site"
+          unzip -q "$archive_dir/dist.zip" -d "$archive_dir/site"
+          test -f "$archive_dir/site/index.html"
+          mkdir -p _site/front-desktop-tools
+          rsync -a --delete "$archive_dir/site/" _site/front-desktop-tools/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
