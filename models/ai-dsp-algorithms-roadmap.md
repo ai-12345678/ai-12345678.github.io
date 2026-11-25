@@ -38,6 +38,7 @@
 - [Python、PyTorch 与 CUDA 运行环境排障](../linux/python-pytorch-cuda-runtime-troubleshooting.html)：已整理；模型部署遇到 GLIBC、CXXABI、编译器或子进程环境问题时查阅。
 - [Zipformer 唤醒词方案](zipformer-kws-guide.html)：完成音频特征与关键词检测基础后阅读。
 - [I2S 时钟与数据原始笔记](https://github.com/ai-12345678/ai-12345678.github.io/blob/main/Embodied-AI/i2s_clock_data_summary.md)：用于理解采样后的 PCM 如何通过硬件接口传输。
+- [网页调用自己的 Chrome 扩展](../agents/webpage-chrome-extension.html) 已整理，可用于实现网页与浏览器扩展的消息通信。
 
 ## 参考资料
 
