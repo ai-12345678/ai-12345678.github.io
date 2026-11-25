@@ -68,3 +68,20 @@ chrome.runtime.onMessageExternal.addListener((message, sender, reply) => {
 部署时，把 `matches` 和 `allowedOrigin` 改为你的 HTTPS 站点。后台按完整来源（协议、主机、端口）和命令类型校验每条消息。
 
 [Chrome 扩展消息通信](https://developer.chrome.com/docs/extensions/develop/concepts/messaging#external-webpage) · [站点白名单配置](https://developer.chrome.com/docs/extensions/reference/manifest/externally-connectable)
+
+## Chrome Debugger：Network 请求事件与响应体
+
+通过 `chrome.debugger` 调用 CDP Network 域，在用户主动开启的授权调试标签页内观察 HTTP/HTTPS 请求。下图为请求生命周期的 SVG 矢量示意图。
+
+![CDP Network 主要事件与请求生命周期](./chrome-cdp-network-events.svg)
+
+[查看高清矢量图（SVG）](./chrome-cdp-network-events.svg)
+
+典型成功流程：`Network.enable` → `requestWillBeSent` → `responseReceived` → `dataReceived`（可多次）→ `loadingFinished` → 调用 `Network.getResponseBody`。
+
+- 使用当前 CDP 会话及 `requestId` 关联响应头与响应体。
+- `loadingFailed` 是失败分支；ExtraInfo 事件可选，且与对应主事件的先后顺序不固定。
+- `getResponseBody` 是命令而非事件；单次 Range 请求只对应本次响应的数据，且大响应体可能受到缓冲限制。持续流式响应可评估实验性接口 `Network.streamResourceContent`。
+- 调试权限较高，仅在用户明确授权的范围内使用，默认不上传或持久化敏感响应。
+
+[Chrome Debugger API](https://developer.chrome.com/docs/extensions/reference/api/debugger/) · [CDP Network](https://chromedevtools.github.io/devtools-protocol/tot/Network/)
