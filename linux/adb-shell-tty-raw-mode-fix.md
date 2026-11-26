@@ -91,6 +91,38 @@ adb_() {
 
 改用 `adb_() ( ... )` 相当于给函数体显式创建子 Shell，`EXIT` trap 随子 Shell 结束而执行，能够明确限定清理动作的生命周期。不要依赖某个 Shell 对普通函数内 `EXIT` trap 的特殊处理。
 
+### 2.3 使用 Wi-Fi 无线调试
+
+Android 11 及以上支持通过配对码建立无线 ADB 连接。先让 Mac 和 Android 手机连到同一个 Wi-Fi，并在 Mac 上使用新版 Android SDK Platform-Tools。
+
+1. 在手机上打开 **设置 → 开发者选项 → 无线调试**，选择 **使用配对码配对设备**。保持弹窗打开，使用弹窗显示的 IP 地址和端口运行 `adb pair`，然后输入手机显示的 6 位配对码。
+
+   ```bash
+   adb pair 192.168.1.50:37123
+   adb devices -l
+   ```
+
+2. 配对成功后，如果 `adb devices -l` 已显示无线设备且状态为 `device`，即可使用。如果没有自动连上，返回手机的**无线调试主页面**，用该页面显示的「IP 地址和端口」手动连接。
+
+   ```bash
+   adb connect 192.168.1.50:41867
+   adb devices -l
+   ```
+
+   上面的地址是示例。配对弹窗提供 `adb pair` 所需的端口，无线调试主页面提供 `adb connect` 所需的端口。如果手动连接超时，请确认手机和 Mac 仍在同一 Wi-Fi，且网络允许设备之间直接通信。
+
+3. 连接后，从 `adb devices -l` 的输出中复制无线设备的序列号，传给本文的 `adb_` 函数。下面用手动连接后常见的 `IP:端口` 格式举例。
+
+   ```zsh
+   adb_ -s 192.168.1.50:41867
+   ```
+
+   如果手机没有 Bash，按上文将函数最后一行改为使用 `sh -i`。连接地址或端口变化后，重新查看无线调试主页面。
+
+Android 10 及以下需先用 USB 建立连接。在手机上开启并授权 USB 调试，确认设备状态为 `device`，然后执行 `adb -d tcpip 5555`（仅连接一台 USB 设备时）。拔掉数据线后，用 `adb connect 手机IP:5555` 连接，再用 `adb devices -l` 确认。
+
+具体要求见 [Android 官方无线 ADB 文档](https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi)。
+
 ## 3. 原理：为什么 Raw 模式有效
 
 输入链路可以简化为：
