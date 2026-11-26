@@ -9,7 +9,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-HOSTS = ("chatgpt.com",)
+HOSTS = ("chatgpt.com", "github.com")
 OUTPUT = Path("_site/api/tls-baselines.json")
 
 
