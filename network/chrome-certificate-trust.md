@@ -9,6 +9,22 @@
 
 如果系统证书开关是灰色的，在 `chrome://policy` 查找 **`CAPlatformIntegrationEnabled`**。`true` 表示启用系统证书集成，`false` 表示关闭。「未设置」表示企业策略没有指定该值，Chrome 的默认值为启用。可以手动修改的版本以证书管理器显示的开关状态为准。受管环境可通过 Chrome 的 macOS 配置描述文件下发布尔值 `false`，再到 `chrome://policy` 核实。 [Chromium 策略定义](https://chromium.googlesource.com/chromium/src/+/HEAD/components/policy/resources/templates/policy_definitions/CertificateManagement/CAPlatformIntegrationEnabled.yaml) · [Chrome 企业版 macOS 策略配置](https://support.google.com/chrome/a/answer/9020077)
 
+## Chrome HTTPS 中间人检测
+
+用访问目标网站的同一个 Chrome 个人资料检查这三处。它们分别影响浏览器是否会信任额外添加的证书。
+
+| 排查项 | 在哪里看 | 怎么判断 |
+| --- | --- | --- |
+| 管理员通过浏览器策略下发的证书 | 在 `chrome://policy` 搜索 `CACertificates` 和 `CACertificatesWithConstraints`。也可以在 `chrome://certificate-manager/localcerts` 查看「管理员安装的证书」。 | 查看策略状态和证书列表。带约束的证书还要核对目标域名或 IP 是否符合约束。浏览器策略下发的证书可以在系统证书开关关闭时继续生效。 |
+| 来自操作系统的证书是否被浏览器启用 | 打开 `chrome://certificate-manager/localcerts`，查看「使用从操作系统导入的本地证书」的实际开关。如果开关由策略控制，在 `chrome://policy` 查 `CAPlatformIntegrationEnabled`。 | `true` 表示启用，`false` 表示关闭。「未设置」表示没有配置这条策略，此时看证书管理器的实际开关。开关开启时，再查看系统证书列表，或到 macOS「钥匙串访问」的「系统」和「登录」里核对 SSL 信任设置。 |
+| 直接导入浏览器的证书 | 打开 `chrome://certificate-manager/localcerts/usercerts`，查看当前 Chrome 个人资料的「受信任的证书」。 | 核对是否存在意外的 CA 或站点证书。对照证书的 SHA-256 指纹确认具体条目。 |
+
+相关参考见 [Chromium 证书信任配置](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/net/profile_network_context_service.cc)、[带约束的 CA 策略定义](https://chromium.googlesource.com/chromium/src/+/main/components/policy/resources/templates/policy_definitions/CertificateManagement/CACertificatesWithConstraints.yaml)和 [Chrome Root Store 常见问题](https://chromium.googlesource.com/chromium/src/+/main/net/data/ssl/chrome_root_store/faq.md)。
+
+要核对某个网站这次连接，在 Chrome DevTools 打开「隐私和安全 → 概览 → 查看证书」。将证书链里的 CA 指纹与上述列表对照，也可以将站点叶子证书的 SHA-256 指纹或公钥 SHA-256 指纹（SPKI）与通过独立可信渠道取得的基准比对。正常换证或轮换密钥也可能改变指纹。 [Chrome DevTools 查看连接证书](https://developer.chrome.com/docs/devtools/security/#view-main-origin-certificate)
+
+三处均无相关额外信任时，Chrome 正常验证 HTTPS 仍会使用 Chrome Root Store。这项检查可以排除依赖这些额外信任证书的 HTTPS 拦截，结论以当前 Chrome 个人资料和连接为准。
+
 ## 导入自签名站点证书
 
 1. **取得服务端当前使用的单张站点证书。** 从服务器取 `server.crt`，或在 Chrome DevTools 的 **「隐私和安全 → 概览 → 查看证书」** 中打开证书查看器，在 **「详细信息」** 选中站点证书并导出。导入前，用服务端原件或管理员从可信渠道提供的 **SHA-256 指纹**独立核对。**`server.key` 是 TLS 私钥，应留在服务器上。** [Chrome DevTools](https://developer.chrome.com/docs/devtools/security/) · [MDN TLS 服务器身份验证](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Transport_Layer_Security#server_authentication)
