@@ -52,7 +52,7 @@ jobs:
           archive_dir=$(mktemp -d)
           trap 'rm -rf "$archive_dir"' EXIT
           repo=ai-12345678/front-desktop-tools
-          # Publish the latest release; redeploy requested for FrontTools v0.2.1.
+          # Publish the latest release; redeploy requested for FrontTools v0.2.2.
           tag=$(gh release view --repo "$repo" --json tagName --jq .tagName)
           echo "Publishing front-desktop-tools $tag"
           gh release download "$tag" --repo "$repo" --pattern dist.zip --output "$archive_dir/dist.zip"
