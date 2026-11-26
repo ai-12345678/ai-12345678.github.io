@@ -2,13 +2,6 @@
 
 在 macOS 版 Chrome 中，可以使用 **Chrome Root Store** 验证公网站点，并在指定的 **Chrome 个人资料**中单独信任经过核对的内网站点证书。下面以本机回环地址 `127.0.0.1` 为例。 [Chrome Root Store 常见问题](https://chromium.googlesource.com/chromium/src/+/main/net/data/ssl/chrome_root_store/faq.md)
 
-## 限制 Chrome 的证书信任来源
-
-1. 在要配置的 Chrome 个人资料里打开 `chrome://certificate-manager/localcerts`。在 macOS 区域关闭 **「使用从操作系统导入的本地证书」**（Use imported local certificates from your operating system）。Chrome 的公开根证书可在 `chrome://certificate-manager/crscerts` 查看。 [Chromium 证书管理器](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/resources/certificate_manager/local_certs_section.html.ts)
-2. 打开 `chrome://certificate-manager/localcerts/usercerts`，核对 **「受信任的证书」** 中已经手动导入的条目，只保留你确认需要的证书。如果有 **「由管理员安装」**，也要核对其中的信任项，Chrome 管理策略可以单独下发证书。 [Chromium 证书信任配置](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/net/profile_network_context_service.cc)
-
-如果系统证书开关是灰色的，在 `chrome://policy` 查找 **`CAPlatformIntegrationEnabled`**。`true` 表示启用系统证书集成，`false` 表示关闭。「未设置」表示企业策略没有指定该值，Chrome 的默认值为启用。可以手动修改的版本以证书管理器显示的开关状态为准。受管环境可通过 Chrome 的 macOS 配置描述文件下发布尔值 `false`，再到 `chrome://policy` 核实。 [Chromium 策略定义](https://chromium.googlesource.com/chromium/src/+/HEAD/components/policy/resources/templates/policy_definitions/CertificateManagement/CAPlatformIntegrationEnabled.yaml) · [Chrome 企业版 macOS 策略配置](https://support.google.com/chrome/a/answer/9020077)
-
 ## Chrome HTTPS 中间人检测
 
 用访问目标网站的同一个 Chrome 个人资料检查这三处。它们分别影响浏览器是否会信任额外添加的证书。
@@ -33,6 +26,13 @@
 4. **在同一 Chrome 个人资料中重新打开原地址。** 导入通常无需重启。其他 Chrome 个人资料需要单独导入。服务器换发自签名证书后，重新核对并导入新证书。 [Chromium 按个人资料保存证书](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/net/server_certificate_database_service_factory.cc)
 
 如果只剩 `server.key`，可以在服务器上用它签发包含 `IP:127.0.0.1` 的新自签名证书。先让服务端加载新证书，再把这张证书导入 Chrome。 [OpenSSL 证书签发命令](https://docs.openssl.org/3.5/man1/openssl-req/)
+
+## 限制 Chrome 的证书信任来源
+
+1. 在要配置的 Chrome 个人资料里打开 `chrome://certificate-manager/localcerts`。在 macOS 区域关闭 **「使用从操作系统导入的本地证书」**（Use imported local certificates from your operating system）。Chrome 的公开根证书可在 `chrome://certificate-manager/crscerts` 查看。 [Chromium 证书管理器](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/resources/certificate_manager/local_certs_section.html.ts)
+2. 打开 `chrome://certificate-manager/localcerts/usercerts`，核对 **「受信任的证书」** 中已经手动导入的条目，只保留你确认需要的证书。如果有 **「由管理员安装」**，也要核对其中的信任项，Chrome 管理策略可以单独下发证书。 [Chromium 证书信任配置](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/net/profile_network_context_service.cc)
+
+如果系统证书开关是灰色的，在 `chrome://policy` 查找 **`CAPlatformIntegrationEnabled`**。`true` 表示启用系统证书集成，`false` 表示关闭。「未设置」表示企业策略没有指定该值，Chrome 的默认值为启用。可以手动修改的版本以证书管理器显示的开关状态为准。受管环境可通过 Chrome 的 macOS 配置描述文件下发布尔值 `false`，再到 `chrome://policy` 核实。 [Chromium 策略定义](https://chromium.googlesource.com/chromium/src/+/HEAD/components/policy/resources/templates/policy_definitions/CertificateManagement/CAPlatformIntegrationEnabled.yaml) · [Chrome 企业版 macOS 策略配置](https://support.google.com/chrome/a/answer/9020077)
 
 ## 验证和排查
 
