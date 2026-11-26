@@ -173,9 +173,11 @@ PDF_ASSET = Path("assets") / "pdf-export.js"
 
 
 def inject_pdf_export() -> int:
-    """Attach the shared PDF-download helper to every published HTML page."""
+    """Attach the shared PDF-download helper to published HTML pages except the download index."""
     injected = 0
     for html_path in SITE.rglob("*.html"):
+        if html_path == SITE / "download" / "index.html":
+            continue
         page = html_path.read_text(encoding="utf-8")
         if 'pdf-export.js"></script>' in page:
             continue
