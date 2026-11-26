@@ -21,7 +21,7 @@ import markdown
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "_site"
 CONTENT_DIRS = (ROOT / "linux", ROOT / "agents", ROOT / "lang", ROOT / "golang", ROOT / "models", ROOT / "network", ROOT / "asm", ROOT / "speech", ROOT / "webrtc", ROOT / "cpp", ROOT / "tcp")
-PUBLISH_ENTRIES = ("index.html", "assets", "kubernetes", "linux", "agents", "lang", "golang", "models", "network", "asm", "speech", "webrtc", "cpp", "tcp")
+PUBLISH_ENTRIES = ("index.html", "download", "assets", "kubernetes", "linux", "agents", "lang", "golang", "models", "network", "asm", "speech", "webrtc", "cpp", "tcp")
 
 
 def extract_title(source: str, fallback: str) -> str:

@@ -71,6 +71,24 @@ jobs:
           mkdir -p _site/front-desktop-tools
           rsync -a --delete "$archive_dir/site/" _site/front-desktop-tools/
 
+      - name: Sync latest Chrome extension release
+        env:
+          GH_TOKEN: ${{ secrets.CHROME_EXTENSION_READ_TOKEN || secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          repo=ai-12345678/chrome-middleman-checker
+          archive_dir=$(mktemp -d)
+          trap 'rm -rf "$archive_dir"' EXIT
+          if tag=$(gh release view --repo "$repo" --json tagName --jq .tagName) &&
+             gh release download "$tag" --repo "$repo" --pattern "chrome-middleman-checker-$tag.tar.gz" --output "$archive_dir/extension.tar.gz" &&
+             tar -tzf "$archive_dir/extension.tar.gz" > "$archive_dir/members.txt" &&
+             grep -Fxq "chrome-middleman-checker-$tag/manifest.json" "$archive_dir/members.txt"; then
+            mv "$archive_dir/extension.tar.gz" _site/download/chrome-middleman-checker.tar.gz
+            echo "Published Chrome extension $tag"
+          else
+            echo '::warning::Extension release unavailable. Check CHROME_EXTENSION_READ_TOKEN access to chrome-middleman-checker. Publishing the bundled version.'
+          fi
+
       - name: Set Pages artifact name
         id: pages-artifact
         run: echo "name=github-pages-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
