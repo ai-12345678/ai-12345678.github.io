@@ -1,6 +1,9 @@
 body { line-height: 1.6; }
 img { max-width: 100%; height: auto; }
 figure { margin: 1em 0; }
-pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Let highlighted code flow across a reader's page columns. */
+div.sourceCode { overflow: visible; }
+pre, pre > code.sourceCode { white-space: pre-wrap; overflow-wrap: anywhere; }
+pre > code.sourceCode > span { display: inline; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: .25em; border: 1px solid #888; vertical-align: top; }
