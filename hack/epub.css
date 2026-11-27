@@ -1,9 +1,266 @@
-body { line-height: 1.6; }
-img { max-width: 100%; height: auto; }
-figure { margin: 1em 0; }
-/* Let highlighted code flow across a reader's page columns. */
-div.sourceCode { overflow: visible; }
-pre, pre > code.sourceCode { white-space: pre-wrap; overflow-wrap: anywhere; }
-pre > code.sourceCode > span { display: inline; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: .25em; border: 1px solid #888; vertical-align: top; }
+body {
+  margin: 0;
+  padding: 0 .8em;
+  font-family: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+  line-height: 1.76;
+  line-break: strict;
+  overflow-wrap: break-word;
+}
+
+#cover {
+  padding: 0;
+}
+
+section.level1, nav#toc {
+  max-width: 42em;
+  margin: 0 auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.38;
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+h1 {
+  margin: 1em 0 .3em;
+  padding-top: .55em;
+  border-top: .1em solid #628a82;
+  font-size: 2.05em;
+  line-height: 1.29;
+}
+
+h2, h3, h4, h5, h6, .book-imprint, .book-source, figcaption, table {
+  font-family: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+}
+
+h2 {
+  margin: 1.7em 0 .65em;
+  padding-bottom: .27em;
+  border-bottom: 1px solid rgba(113, 130, 127, .4);
+  font-size: 1.38em;
+}
+
+h3 {
+  margin: 1.35em 0 .5em;
+  font-size: 1.14em;
+}
+
+h4, h5, h6 {
+  margin: 1.1em 0 .45em;
+  font-size: 1em;
+}
+
+p, ul, ol, dl {
+  margin: 0 0 .9em;
+  orphans: 2;
+  widows: 2;
+}
+
+ul, ol {
+  padding-left: 1.5em;
+}
+
+li {
+  margin-bottom: .32em;
+}
+
+li > p, li > ul, li > ol {
+  margin: .28em 0;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: #73958b;
+  text-underline-offset: .15em;
+}
+
+.book-imprint {
+  margin-bottom: 1.9em;
+  font-size: .88em;
+  opacity: .8;
+}
+
+.book-source {
+  margin-top: 2em;
+  padding: .7em 0;
+  border-top: 1px solid rgba(113, 130, 127, .4);
+  font-size: .9em;
+}
+
+.book-source > p {
+  margin: 0;
+}
+
+blockquote {
+  margin: 1em 0;
+  padding: .35em 0 .35em .95em;
+  border-left: .2em solid #73958b;
+}
+
+blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+hr {
+  margin: 1.5em 0;
+  border: 0;
+  border-top: 1px solid rgba(113, 130, 127, .4);
+}
+
+/* Keep code in normal flow so a reader can split long examples across pages. */
+div.sourceCode,
+pre,
+pre > code.sourceCode {
+  overflow: visible;
+  page-break-inside: auto;
+  break-inside: auto;
+}
+
+div.sourceCode, pre {
+  margin: .9em 0 1.25em;
+}
+
+pre {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: .72em .85em;
+  border-left: .2em solid #73958b;
+  background-color: rgba(118, 136, 131, .13);
+  font-size: .86em;
+  line-height: 1.52;
+  tab-size: 4;
+  orphans: 1;
+  widows: 1;
+}
+
+code, kbd, samp {
+  font-family: "SFMono-Regular", Menlo, Consolas, "Noto Sans Mono CJK SC", monospace;
+  hyphens: none;
+  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+code {
+  font-size: .92em;
+}
+
+pre > code, pre > code.sourceCode {
+  position: static;
+  font-size: 1em;
+}
+
+pre, pre > code, pre > code.sourceCode {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+pre > code.sourceCode > span {
+  display: inline;
+  line-height: inherit;
+}
+
+/* Use punctuation and weight for legibility in both light and dark reader themes. */
+code.sourceCode span {
+  color: inherit;
+}
+
+code.sourceCode .kw,
+code.sourceCode .cf,
+code.sourceCode .dt,
+code.sourceCode .fu {
+  font-weight: 700;
+}
+
+code.sourceCode .co {
+  opacity: .78;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+figure {
+  margin: 1.15em 0 1.45em;
+  text-align: center;
+}
+
+figure img {
+  display: block;
+  width: auto;
+  max-height: 74vh;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.book-diagram img {
+  box-sizing: border-box;
+  border: 1px solid rgba(113, 130, 127, .44);
+  background-color: #fffcf5;
+}
+
+figcaption {
+  margin-top: .48em;
+  font-size: .86em;
+  line-height: 1.5;
+  opacity: .8;
+}
+
+table {
+  width: 100%;
+  margin: 1em 0 1.5em;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: .9em;
+  line-height: 1.55;
+}
+
+th, td {
+  padding: .43em .49em;
+  border-bottom: 1px solid rgba(113, 130, 127, .33);
+  vertical-align: top;
+  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+thead th {
+  border-bottom-color: #73958b;
+  background-color: rgba(118, 136, 131, .19);
+}
+
+tbody tr:nth-child(even) {
+  background-color: rgba(118, 136, 131, .075);
+}
+
+th > p:last-child, td > p:last-child {
+  margin-bottom: 0;
+}
+
+div.arithmatex, span.math.display {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+span.math.display {
+  margin: .55em 0;
+  padding: .22em 0;
+  text-align: center;
+}
+
+nav#toc ol {
+  margin: .42em 0 .65em;
+  padding-left: 1em;
+  list-style: none;
+}
+
+nav#toc > ol {
+  padding-left: 0;
+}
+
+nav#toc > ol > li > a {
+  font-weight: 700;
+}

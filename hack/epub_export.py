@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
@@ -30,6 +30,9 @@ from zipfile import ZipFile
 
 from lxml import etree, html
 from markdown.extensions.toc import slugify_unicode, unique
+from PIL import Image, ImageChops
+
+from epub_cover import cover_fonts, write_cover
 
 
 SITE_URL = "https://ai-12345678.github.io/"
@@ -38,6 +41,8 @@ SITE_AUTHOR = "ai-12345678"
 BOOK_LANGUAGE = "zh-Hans"
 CATALOG_TITLE = "技术学习笔记 · 电子书目录"
 OPDS_MEDIA_TYPE = "application/atom+xml;profile=opds-catalog;kind=acquisition"
+SITE_TIMEZONE = timezone(timedelta(hours=8))
+DIAGRAM_BACKGROUND = "#fffcf5"
 
 
 @dataclass
@@ -68,7 +73,9 @@ def read_document(page: Path, site: Path, updated: datetime) -> Document:
         body = tree.find(".//main")
     if body is None:
         body = tree.find("body")
-    for element in body.xpath(".//nav | .//script | .//style | .//dialog | .//iframe"):
+    for element in body.xpath(
+        ".//nav | .//script | .//style | .//dialog | .//iframe | .//form | .//button | .//input"
+    ):
         element.drop_tree()
 
     heading = body.find(".//h1")
@@ -95,6 +102,15 @@ def read_document(page: Path, site: Path, updated: datetime) -> Document:
             image.set("src", quote(str(local)))
         else:
             replace_with_link(image, url_parts.geturl(), image.get("alt") or "查看图片")
+    image_paragraphs = body.xpath(
+        ".//p[count(*)=1 and img and not(text()[normalize-space()]) and not(ancestor::figure)]"
+    )
+    for paragraph in image_paragraphs:
+        paragraph.tag = "figure"
+        image = paragraph[0]
+        caption = image.get("title") or image.get("alt")
+        if caption:
+            etree.SubElement(paragraph, "figcaption").text = caption
     for media in body.xpath(".//audio[@src] | .//video[@src]"):
         replace_with_link(media, media.get("src"), "试听音频" if media.tag == "audio" else "播放视频")
 
@@ -106,6 +122,37 @@ def replace_with_link(element: html.HtmlElement, href: str, label: str) -> None:
     link.text = label
     link.tail = element.tail
     element.getparent().replace(element, link)
+
+
+def split_diagram(image_path: Path) -> list[Path]:
+    with Image.open(image_path) as source:
+        width, height = source.size
+        if height <= width * 1.5:
+            return [image_path]
+        image = source.convert("RGB")
+
+    # Near each desired break, prefer a row with little ink to keep text and
+    # arrows intact. A short overlap keeps connections visible at the seam.
+    paper = Image.new("RGB", image.size, DIAGRAM_BACKGROUND)
+    ink = ImageChops.difference(image, paper).convert("L")
+    mask = ink.point(lambda shade: 255 if shade > 32 else 0)
+    density = tuple(mask.resize((1, height), Image.Resampling.BOX).get_flattened_data())
+    count = (height + width - 1) // width
+    tolerance = max(4, width // 12)
+    overlap = min(48, width // 26)
+    cuts = [0]
+    for part in range(1, count):
+        target = round(part * height / count)
+        rows = range(target - tolerance, target + tolerance + 1)
+        cuts.append(min(rows, key=lambda row: (max(density[row - 4:row + 5]), abs(row - target))))
+    cuts.append(height)
+
+    panels = []
+    for part, (top, bottom) in enumerate(zip(cuts, cuts[1:]), 1):
+        panel_path = image_path.with_stem(f"{image_path.stem}-part-{part}")
+        image.crop((0, max(0, top - overlap), width, bottom)).save(panel_path)
+        panels.append(panel_path)
+    return panels
 
 
 def render_diagrams(documents: list[Document], work: Path) -> None:
@@ -126,29 +173,56 @@ def render_diagrams(documents: list[Document], work: Path) -> None:
     config = work / "mermaid.json"
     blocks = [f"```mermaid\n{code.text_content().strip()}\n```\n" for _, code in diagrams]
     source.write_text("\n".join(blocks), encoding="utf-8")
-    config.write_text(
-        json.dumps({"securityLevel": "strict", "fontFamily": "Noto Sans CJK SC, sans-serif"}), encoding="utf-8",
-    )
+    config.write_text(json.dumps({
+        "theme": "base",
+        "securityLevel": "strict",
+        "fontFamily": "Noto Sans CJK SC, sans-serif",
+        "themeVariables": {
+            "primaryColor": "#e9f1ed",
+            "primaryTextColor": "#193530",
+            "primaryBorderColor": "#64877d",
+            "lineColor": "#48625a",
+            "actorBkg": "#e9f1ed",
+            "actorBorder": "#64877d",
+            "actorTextColor": "#193530",
+            "signalColor": "#324943",
+            "signalTextColor": "#193530",
+            "noteBkgColor": "#f5ead3",
+            "noteTextColor": "#3b3225",
+        },
+        "sequence": {"actorMargin": 32, "wrap": True},
+    }), encoding="utf-8")
     result = subprocess.run(
-        [renderer, "-i", str(source), "-o", str(output), "-e", "png", "-s", "2", "-c", str(config)],
+        [renderer, "-i", str(source), "-o", str(output), "-e", "png", "-s", "3",
+         "-b", DIAGRAM_BACKGROUND, "-c", str(config)],
         check=False,
     )
     if result.returncode != 0:
         print("Mermaid rendering reported an error: retaining source for diagrams without an image")
 
     rendered = 0
+    panels_count = 0
     for index, (title, code) in enumerate(diagrams, 1):
         image = output.with_name(f"{output.stem}-{index}.png")
         if image.is_file():
             block = code.getparent()
-            figure = html.Element("img", src=str(image), alt=f"{title} · Mermaid 图")
-            figure.tail = block.tail
-            block.getparent().replace(block, figure)
+            kind = code.text_content().split(maxsplit=1)[0]
+            label = {"sequenceDiagram": "时序图", "flowchart": "流程图", "graph": "流程图"}.get(kind, "示意图")
+            panels = split_diagram(image)
+            diagram = html.Element("div", {"class": "book-diagram"})
+            for part, panel in enumerate(panels, 1):
+                caption = f"{label}（{part}/{len(panels)}）" if len(panels) > 1 else label
+                figure = etree.SubElement(diagram, "figure")
+                etree.SubElement(figure, "img", src=str(panel), alt=f"{title} · {caption}")
+                etree.SubElement(figure, "figcaption").text = caption
+            diagram.tail = block.tail
+            block.getparent().replace(block, diagram)
             rendered += 1
-    print(f"Rendered Mermaid diagrams: {rendered}/{len(diagrams)}")
+            panels_count += len(panels)
+    print(f"Rendered Mermaid diagrams: {rendered}/{len(diagrams)} ({panels_count} image panels)")
 
 
-def write_article_epub(site: Path, document: Document) -> None:
+def write_article_epub(site: Path, document: Document, date: str, cover: Path | None) -> None:
     body = deepcopy(document.body)
     for link in body.xpath(".//a[@href]"):
         href = urljoin(document.url, link.get("href"))
@@ -158,7 +232,12 @@ def write_article_epub(site: Path, document: Document) -> None:
             if anchor:
                 href = f"#{anchor}"
         link.set("href", href)
-    source = etree.SubElement(etree.SubElement(body, "p"), "a", href=document.url)
+    imprint = html.Element("div", {"class": "book-imprint"})
+    etree.SubElement(imprint, "p").text = f"{SITE_AUTHOR} · 更新于 {date}"
+    body.find(f".//*[@id='{document.chapter_id}']").addnext(imprint)
+
+    backmatter = etree.SubElement(body, "div", {"class": "book-source"})
+    source = etree.SubElement(etree.SubElement(backmatter, "p"), "a", href=document.url)
     source.text = "阅读网页原文"
 
     book_body = html.Element("body")
@@ -169,12 +248,14 @@ def write_article_epub(site: Path, document: Document) -> None:
     destination = site / output
     destination.parent.mkdir(parents=True, exist_ok=True)
     source_html = f'<!doctype html><html lang="{BOOK_LANGUAGE}">{html.tostring(book_body, encoding="unicode")}</html>'
+    cover_option = ["--epub-cover-image", str(cover)] if cover is not None else []
     subprocess.run(
         ["pandoc", "--from=html+tex_math_single_backslash", "--to=epub3", "--toc", "--toc-depth=3",
          "--mathml", "--epub-title-page=false", "--css", str(Path(__file__).with_name("epub.css")),
          "--metadata", f"title={document.title}", "--metadata", f"author={SITE_AUTHOR}",
          "--metadata", f"lang={BOOK_LANGUAGE}", "--metadata", "toc-title=目录",
          "--metadata", f"identifier={site_url(output)}",
+         *cover_option,
          "--output", str(destination)],
         input=source_html, text=True, encoding="utf-8", check=True,
         # Use the article timestamp for Pandoc's EPUB publication date.
@@ -248,10 +329,17 @@ def build_article_epubs(site: Path, sources: dict[Path, Path], *, source_root: P
         read_document(page, site, document_updated_at(source_root, source))
         for page, source in sorted(sources.items())
     ]
+    fonts = cover_fonts()
+    if fonts is None:
+        print("No CJK cover fonts found, using the typeset article opening")
     with TemporaryDirectory(prefix="blog-epub-") as work:
         render_diagrams(articles, Path(work))
+        cover = Path(work) / "cover.png"
         for article in articles:
-            write_article_epub(site, article)
+            date = article.updated.astimezone(SITE_TIMEZONE).date().isoformat()
+            if fonts is not None:
+                write_cover(cover, article.title, SITE_AUTHOR, date, fonts)
+            write_article_epub(site, article, date, cover if fonts is not None else None)
 
     write_catalog(site, articles)
     return len(articles)
