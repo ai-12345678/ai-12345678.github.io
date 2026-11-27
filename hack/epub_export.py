@@ -13,6 +13,7 @@ from tempfile import TemporaryDirectory
 from urllib.parse import quote, unquote, urljoin, urlsplit
 from uuid import NAMESPACE_URL, uuid5
 from xml.etree import ElementTree as ET
+from zipfile import ZipFile
 
 from lxml import etree, html
 from markdown.extensions.toc import slugify_unicode, unique
@@ -149,7 +150,7 @@ def render_diagrams(documents: list[Document], work: Path) -> None:
 
 def write_epub(site: Path, output: Path, title: str, documents: list[Document]) -> None:
     by_url = {document.url: document for document in documents}
-    chapters = []
+    book_body = html.Element("body")
     for document in documents:
         body = deepcopy(document.body)
         for link in body.xpath(".//a[@href]"):
@@ -163,10 +164,12 @@ def write_epub(site: Path, output: Path, title: str, documents: list[Document]) 
             link.set("href", href)
         source = etree.SubElement(etree.SubElement(body, "p"), "a", href=document.url)
         source.text = "阅读网页原文"
-        chapters.append(html.tostring(body, encoding="unicode"))
+        book_body.append(body)
+        body.drop_tag()
 
     destination = site / output
     destination.parent.mkdir(parents=True, exist_ok=True)
+    source_html = f'<!doctype html><html lang="{BOOK_LANGUAGE}">{html.tostring(book_body, encoding="unicode")}</html>'
     subprocess.run(
         ["pandoc", "--from=html+tex_math_single_backslash", "--to=epub3", "--toc", "--toc-depth=3",
          "--mathml", "--epub-title-page=false", "--css", str(Path(__file__).with_name("epub.css")),
@@ -174,8 +177,21 @@ def write_epub(site: Path, output: Path, title: str, documents: list[Document]) 
          "--metadata", f"lang={BOOK_LANGUAGE}", "--metadata", "toc-title=目录",
          "--metadata", f"identifier={site_url(output)}",
          "--output", str(destination)],
-        input="\n".join(chapters), text=True, encoding="utf-8", check=True,
+        input=source_html, text=True, encoding="utf-8", check=True,
     )
+    verify_epub_chapters(destination, documents)
+
+
+def verify_epub_chapters(destination: Path, documents: list[Document]) -> None:
+    missing = {document.chapter_id: document.title for document in documents}
+    with ZipFile(destination) as book:
+        for name in book.namelist():
+            if name.endswith(".xhtml"):
+                chapter = ET.fromstring(book.read(name))
+                for element in chapter.findall(".//*[@id]"):
+                    missing.pop(element.attrib["id"], None)
+    if missing:
+        raise RuntimeError(f"{destination} is missing chapters: {', '.join(missing.values())}")
 
 
 def write_catalog(site: Path, books: list[tuple[str, str, Path, int]]) -> None:
