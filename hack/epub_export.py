@@ -252,6 +252,7 @@ def write_article_epub(site: Path, document: Document, date: str, cover: Path | 
     subprocess.run(
         ["pandoc", "--from=html+tex_math_single_backslash", "--to=epub3", "--toc", "--toc-depth=3",
          "--mathml", "--epub-title-page=false", "--css", str(Path(__file__).with_name("epub.css")),
+         "--lua-filter", str(Path(__file__).with_name("epub-table-wrap.lua")),
          "--metadata", f"title={document.title}", "--metadata", f"author={SITE_AUTHOR}",
          "--metadata", f"lang={BOOK_LANGUAGE}", "--metadata", "toc-title=目录",
          "--metadata", f"identifier={site_url(output)}",

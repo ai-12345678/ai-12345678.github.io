@@ -4,6 +4,7 @@ body {
   font-family: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif;
   line-height: 1.76;
   line-break: strict;
+  word-break: normal;
   overflow-wrap: break-word;
 }
 
@@ -14,19 +15,21 @@ body {
 section.level1, nav#toc {
   max-width: 42em;
   margin: 0 auto;
+  text-align: left;
 }
 
 h1, h2, h3, h4, h5, h6 {
   line-height: 1.38;
+  text-align: left;
   page-break-after: avoid;
   break-after: avoid;
 }
 
 h1 {
-  margin: 1em 0 .3em;
+  margin: .7em 0 .4em;
   padding-top: .55em;
   border-top: .1em solid #628a82;
-  font-size: 2.05em;
+  font-size: 1.6em;
   line-height: 1.29;
 }
 
@@ -57,6 +60,12 @@ p, ul, ol, dl {
   widows: 2;
 }
 
+/* Readers can inject paragraph justification and indentation. Keep one left edge. */
+section.level1 p {
+  text-align: left !important;
+  text-indent: 0 !important;
+}
+
 ul, ol {
   padding-left: 1.5em;
 }
@@ -76,9 +85,13 @@ a {
 }
 
 .book-imprint {
-  margin-bottom: 1.9em;
+  margin-bottom: 1.45em;
   font-size: .88em;
   opacity: .8;
+}
+
+.book-imprint > p {
+  margin: 0;
 }
 
 .book-source {
@@ -124,11 +137,15 @@ div.sourceCode, pre {
 pre {
   box-sizing: border-box;
   max-width: 100%;
-  padding: .72em .85em;
+  padding: .65em .62em;
   border-left: .2em solid #73958b;
   background-color: rgba(118, 136, 131, .13);
   font-size: .86em;
   line-height: 1.52;
+  text-align: left;
+  text-indent: 0;
+  letter-spacing: normal;
+  word-spacing: normal;
   tab-size: 4;
   orphans: 1;
   widows: 1;
@@ -152,6 +169,7 @@ pre > code, pre > code.sourceCode {
 
 pre, pre > code, pre > code.sourceCode {
   white-space: pre-wrap;
+  word-break: normal;
   word-wrap: break-word;
   overflow-wrap: anywhere;
 }
@@ -210,20 +228,40 @@ figcaption {
 
 table {
   width: 100%;
+  max-width: 100%;
   margin: 1em 0 1.5em;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: .9em;
   line-height: 1.55;
+  text-align: left;
+}
+
+/* Give the explanation more room in tables with two unweighted columns. */
+table > thead:first-child > tr:first-child > th:first-child:nth-last-child(2):not([colspan]) {
+  box-sizing: border-box;
+  width: 38%;
 }
 
 th, td {
   padding: .43em .49em;
   border-bottom: 1px solid rgba(113, 130, 127, .33);
   vertical-align: top;
+  white-space: normal;
+  word-break: normal;
   overflow-wrap: break-word;
   overflow-wrap: anywhere;
   text-align: left;
+}
+
+thead {
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 thead th {
