@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light">
-<title>ai-12345678</title>
+<title>技术学习笔记 · ai-12345678</title>
 <style>
   :root {
     --bg: #f6f7f9;
@@ -39,22 +39,8 @@
     padding: 8px 0 34px;
   }
 
-  .eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 10px;
-    border: 1px solid #b6d7fa;
-    border-radius: 999px;
-    background: var(--blue-soft);
-    color: #0550ae;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: .02em;
-  }
-
   h1 {
-    margin: 16px 0 10px;
+    margin: 0 0 10px;
     font-size: clamp(32px, 5vw, 48px);
     line-height: 1.15;
     letter-spacing: -0.025em;
@@ -65,6 +51,42 @@
     margin: 0;
     color: var(--muted);
     font-size: 17px;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin-top: 20px;
+  }
+
+  .opds-subscribe {
+    min-height: 44px;
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--blue);
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .opds-subscribe:hover { background: #0550ae; }
+  .opds-subscribe:focus-visible { outline: 3px solid #80baff; outline-offset: 2px; }
+
+  .opds-copy-status { color: var(--muted); font-size: 14px; }
+
+  .opds-copy-address {
+    width: min(100%, 420px);
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
   }
 
   .section-title {
@@ -204,16 +226,20 @@
     .page { padding-top: 40px; }
   }
 </style>
-<link rel="related" type="application/atom+xml;profile=opds-catalog;kind=acquisition" title="专题电子书目录" href="./opds.xml">
+<link id="opds-catalog" rel="related" type="application/atom+xml;profile=opds-catalog;kind=acquisition" title="专题电子书目录" href="./opds.xml">
 </head>
 <body>
 <main class="page">
   <section class="hero">
-    <div class="eyebrow">☸ Kubernetes Visual Docs</div>
-    <h1>Kubernetes 架构与核心流程</h1>
+    <h1>技术学习笔记</h1>
     <p class="subtitle">
-      面向源码阅读与架构理解的可视化文档入口。通过架构图和时序图，快速理解 Kubernetes、Linux 与基础设施相关核心机制。
+      记录 Kubernetes 架构与调度、Linux 与终端排障、TCP 与 WebRTC、Go 与 C++，以及 AI Agent、模型与算法、语音与音频处理。结合架构图、时序图、代码示例和实验，梳理工作原理与实现细节。
     </p>
+    <div class="hero-actions">
+      <button id="opds-subscribe" class="opds-subscribe" type="button" title="复制 OPDS 订阅地址">订阅 OPDS</button>
+      <span id="opds-copy-status" class="opds-copy-status" role="status"></span>
+      <input id="opds-copy-address" class="opds-copy-address" type="url" aria-label="OPDS 订阅地址" readonly hidden>
+    </div>
   </section>
 
   <div class="section-title">
@@ -539,5 +565,26 @@
     · <a href="./opds.xml">OPDS 电子书目录</a>
   </footer>
 </main>
+<script type="module">
+  const catalog = document.getElementById("opds-catalog");
+  const subscribe = document.getElementById("opds-subscribe");
+  const status = document.getElementById("opds-copy-status");
+  const addressInput = document.getElementById("opds-copy-address");
+
+  subscribe.addEventListener("click", async () => {
+    const address = catalog.href;
+    try {
+      await navigator.clipboard.writeText(address);
+      addressInput.hidden = true;
+      status.textContent = "已复制订阅地址";
+    } catch {
+      addressInput.value = address;
+      addressInput.hidden = false;
+      addressInput.focus();
+      addressInput.select();
+      status.textContent = "请手动复制订阅地址";
+    }
+  });
+</script>
 </body>
 </html>
