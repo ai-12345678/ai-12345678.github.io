@@ -1,5 +1,17 @@
 """Export the published documentation as EPUB books and an OPDS catalog."""
 
+# Commit the Markdown or HTML source edits before rebuilding, since each
+# article's latest source commit supplies its timestamp. Keep the full Git
+# history in the Pages checkout (fetch-depth: 0).
+#
+# From the repository root, run `python hack/build-pages.py` to rebuild the
+# website, individual EPUBs, and `_site/opds.xml` together. Pushing to main
+# runs the same build and publishes its output through GitHub Pages.
+#
+# Verify that OPDS entries appear in descending `<updated>` order and that
+# each matching EPUB's OPF `<dc:date>` equals the entry's `<updated>`.
+# Readest uses the imported publication date when sorting its bookshelf.
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -165,7 +177,7 @@ def write_article_epub(site: Path, document: Document) -> None:
          "--metadata", f"identifier={site_url(output)}",
          "--output", str(destination)],
         input=source_html, text=True, encoding="utf-8", check=True,
-        # Pandoc uses this timestamp for the EPUB publication date.
+        # Use the article timestamp for Pandoc's EPUB publication date.
         env={**os.environ, "SOURCE_DATE_EPOCH": str(int(document.updated.timestamp()))},
     )
     verify_epub_chapter(destination, document)
