@@ -1,0 +1,33 @@
+.toolbar {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.export-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-inline-start: auto;
+}
+
+.export-actions-static { margin-block-end: 1em; }
+
+.export-actions .epub-export-button {
+  padding: 8px 13px;
+  border: 1px solid #0969da;
+  border-radius: 8px;
+  background: #fff;
+  color: #0550ae;
+  font: 600 13px/1.4 system-ui, sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.export-actions .epub-export-button:hover { background: #eff6ff; }
+.export-actions .epub-export-button:focus-visible { outline: 3px solid #80baff; outline-offset: 2px; }
+
+@media print {
+  .export-actions { display: none !important; }
+}

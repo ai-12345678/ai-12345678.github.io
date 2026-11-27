@@ -12,6 +12,7 @@
 - `kubernetes/`：现有 HTML 文档及 Markdown 资料；构建时直接复制，当前不自动转换其中的 Markdown。
 - `Embodied-AI/`：已有 I2S 原始笔记，当前未加入发布范围；引用时使用有效的仓库链接，发布此目录需同步调整构建配置。
 - `hack/build-pages.py`：复制发布内容、将支持目录内的 Markdown 转为同路径 HTML。
+- `hack/epub_export.py`：为发布的专题和文章生成 EPUB，并生成 `opds.xml` 专题目录。
 - `.github/workflows/pages.yml`：main 推送及手动触发的 GitHub Pages 构建部署。
 - `requirements.txt`：Python Markdown 依赖。
 - `_site/`：生成的发布产物，已忽略，不手动编辑或提交。
@@ -36,7 +37,7 @@
 
 ## 构建与验证
 
-在完整仓库根目录运行：
+安装 Pandoc 后在完整仓库根目录运行：
 
 ```bash
 python -m pip install -r requirements.txt
@@ -45,6 +46,8 @@ python -m http.server 8000 --directory _site
 ```
 
 构建会删除并重建 `_site/`。预览访问 `http://localhost:8000/`。
+
+有 Mermaid CLI（`mmdc`）时，构建会把 EPUB 里的 Mermaid 图渲染为图片。GitHub Pages 工作流会安装 Pandoc、Mermaid CLI 和中文字体。
 
 - 文档修改：检查技术准确性、标题、相对链接及路线状态；对新增或修改的可运行示例，检查依赖并运行验证。
 - 构建或路径修改：运行完整构建，确认目标 HTML、Markdown 下载文件及首页链接存在；涉及外观时查看桌面和移动端页面。

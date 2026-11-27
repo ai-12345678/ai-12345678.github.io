@@ -17,7 +17,18 @@
 </head>
 <body>
 <h1>Deployment 创建时序图</h1>
-<div id="diagram"></div>
+<div id="diagram"><pre><code class="language-mermaid">sequenceDiagram
+  participant C as client
+  participant A as kube-apiserver
+  participant E as etcd
+  participant CM as controller-manager
+  C-&gt;&gt;A: kubectl apply (提交 Deployment)
+  Note over A: Authentication → Authorization → Admission
+  A-&gt;&gt;E: 写入 Deployment
+  E--&gt;&gt;A: watch 事件通知
+  A--&gt;&gt;CM: Deployment 变化通知
+  CM-&gt;&gt;A: 创建 ReplicaSet 请求
+  A-&gt;&gt;E: 写入 ReplicaSet</code></pre></div>
 
 <script type="module">
 import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
@@ -41,18 +52,7 @@ mermaid.initialize({
   },
 });
 
-const definition = `sequenceDiagram
-  participant C as client
-  participant A as kube-apiserver
-  participant E as etcd
-  participant CM as controller-manager
-  C->>A: kubectl apply (提交 Deployment)
-  Note over A: Authentication → Authorization → Admission
-  A->>E: 写入 Deployment
-  E-->>A: watch 事件通知
-  A-->>CM: Deployment 变化通知
-  CM->>A: 创建 ReplicaSet 请求
-  A->>E: 写入 ReplicaSet`;
+const definition = document.querySelector('#diagram code').textContent.trim();
 
 const { svg } = await mermaid.render('seq-svg', definition);
 document.getElementById('diagram').innerHTML = svg;

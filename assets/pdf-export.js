@@ -98,7 +98,7 @@
           useCORS: true,
           scrollX: 0,
           scrollY: 0,
-          ignoreElements: node => node.classList?.contains("pdf-export-button") || false,
+          ignoreElements: node => node.matches?.(".export-actions, .pdf-export-button") ?? false,
         },
         jsPDF: { unit: "mm", format: "a4", orientation: isWide ? "landscape" : "portrait" },
         pagebreak: { mode: ["css", "legacy"], avoid: ["figure", ".mermaid-diagram"] },
@@ -144,6 +144,12 @@
     button.textContent = "↓ 下载 PDF";
     button.setAttribute("aria-label", "将当前页面下载为 PDF");
     button.addEventListener("click", () => downloadPdf(button));
+
+    const epubLink = document.querySelector(".export-actions .epub-export-button");
+    if (epubLink) {
+      epubLink.before(button);
+      return;
+    }
 
     const toolbar = document.querySelector("nav.toolbar");
     if (toolbar) {

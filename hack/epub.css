@@ -1,0 +1,6 @@
+body { line-height: 1.6; }
+img { max-width: 100%; height: auto; }
+figure { margin: 1em 0; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .25em; border: 1px solid #888; vertical-align: top; }

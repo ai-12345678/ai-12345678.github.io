@@ -6,6 +6,7 @@ Rules:
 - Keep hand-written Kubernetes HTML unchanged.
 - Generate a sibling HTML page for every Markdown file under linux/, agents/, lang/, golang/, models/, network/, asm/, speech/, webrtc/, cpp/, and tcp/.
 - Keep the original Markdown files available for download.
+- Export documentation as topic and article EPUBs, and list the topics in opds.xml.
 """
 
 from __future__ import annotations
@@ -15,13 +16,18 @@ import os
 import re
 import shutil
 from pathlib import Path
+from urllib.parse import quote
 
 import markdown
+
+from epub_export import article_epub_path, build_epub_collections
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "_site"
 CONTENT_DIRS = (ROOT / "linux", ROOT / "agents", ROOT / "lang", ROOT / "golang", ROOT / "models", ROOT / "network", ROOT / "asm", ROOT / "speech", ROOT / "webrtc", ROOT / "cpp", ROOT / "tcp")
 PUBLISH_ENTRIES = ("index.html", "download", "assets", "kubernetes", "linux", "agents", "lang", "golang", "models", "network", "asm", "speech", "webrtc", "cpp", "tcp")
+PDF_ASSET = Path("assets", "pdf-export.js")
+EPUB_STYLE = Path("assets", "epub-export.css")
 
 
 def extract_title(source: str, fallback: str) -> str:
@@ -31,7 +37,23 @@ def extract_title(source: str, fallback: str) -> str:
     return fallback
 
 
-def render_page(title: str, body: str, md_href: str) -> str:
+def asset_href(page: Path, target: Path) -> str:
+    relative = Path(os.path.relpath(SITE / target, page.parent)).as_posix()
+    return html.escape(quote(relative), quote=True)
+
+
+def epub_button(page: Path) -> str:
+    path = page.relative_to(SITE)
+    href = asset_href(page, article_epub_path(path))
+    filename = html.escape("-".join(path.with_suffix("").parts) + ".epub", quote=True)
+    return f'<a class="epub-export-button" href="{href}" download="{filename}">导出 EPUB</a>'
+
+
+def epub_style(page: Path) -> str:
+    return f'<link rel="stylesheet" href="{asset_href(page, EPUB_STYLE)}">'
+
+
+def render_page(title: str, body: str, md_href: str, page: Path) -> str:
     safe_title = html.escape(title)
     safe_md_href = html.escape(md_href, quote=True)
     math_script = ""
@@ -140,13 +162,17 @@ for (const [index, code] of Array.from(document.querySelectorAll('pre > code.lan
   blockquote {{ margin-left: 0; padding-left: 16px; border-left: 4px solid var(--border); color: var(--muted); }}
   @media (max-width: 640px) {{ article {{ padding: 24px 20px; }} h1 {{ font-size: 26px; }} }}
 </style>
+{epub_style(page)}
 {math_script}
 </head>
 <body>
 <main class=\"page\">
   <nav class=\"toolbar\">
     <a href=\"/\">← 返回文档首页</a>
-    <a href=\"{safe_md_href}\" download>下载 Markdown</a>
+    <span class=\"export-actions\">
+      <a href=\"{safe_md_href}\" download>下载 Markdown</a>
+      {epub_button(page)}
+    </span>
   </nav>
   <article>
 {body}
@@ -169,22 +195,26 @@ def copy_publish_entries() -> None:
             shutil.copy2(source, target)
 
 
-PDF_ASSET = Path("assets") / "pdf-export.js"
-
-
-def inject_pdf_export() -> int:
-    """Attach the shared PDF-download helper except on the home and download pages."""
+def inject_export_controls(generated_pages: set[Path]) -> int:
+    """Attach download controls to the hand-written pages and keep PDF exports available."""
     injected = 0
     for html_path in SITE.rglob("*.html"):
         if html_path in (SITE / "index.html", SITE / "download" / "index.html"):
             continue
         page = html_path.read_text(encoding="utf-8")
+        epub = SITE / article_epub_path(html_path.relative_to(SITE))
+        if epub.is_file() and html_path not in generated_pages:
+            controls = f'<div class="export-actions export-actions-static">{epub_button(html_path)}</div>'
+            page = re.sub(r"</head\s*>", lambda match: epub_style(html_path) + "\n" + match[0],
+                          page, count=1, flags=re.IGNORECASE)
+            page = re.sub(r"<body\b[^>]*>", lambda match: match[0] + "\n" + controls + "\n",
+                          page, count=1, flags=re.IGNORECASE)
         if 'pdf-export.js"></script>' in page:
+            html_path.write_text(page, encoding="utf-8")
             continue
 
         # Relative URLs also work when the site is previewed under a subpath.
-        script_src = os.path.relpath(SITE / PDF_ASSET, html_path.parent).replace(os.sep, "/")
-        tag = f'<script defer src="{html.escape(script_src, quote=True)}"></script>'
+        tag = f'<script defer src="{asset_href(html_path, PDF_ASSET)}"></script>'
         closing_body = re.search(r"</body\s*>", page, flags=re.IGNORECASE)
         if closing_body:
             page = page[:closing_body.start()] + tag + "\n" + page[closing_body.start():]
@@ -196,12 +226,14 @@ def inject_pdf_export() -> int:
 
 
 def main() -> None:
+    if shutil.which("pandoc") is None:
+        raise SystemExit("Pandoc is required to build the EPUB downloads.")
     if SITE.exists():
         shutil.rmtree(SITE)
     SITE.mkdir(parents=True)
     copy_publish_entries()
 
-    generated = 0
+    generated_pages = set()
     for content_dir in CONTENT_DIRS:
         for md_path in content_dir.rglob("*.md"):
             rel = md_path.relative_to(ROOT)
@@ -216,12 +248,17 @@ def main() -> None:
             )
             output_html.parent.mkdir(parents=True, exist_ok=True)
             output_html.write_text(
-                render_page(title, body, md_path.name), encoding="utf-8"
+                render_page(title, body, md_path.name, output_html), encoding="utf-8"
             )
-            generated += 1
+            generated_pages.add(output_html)
 
-    injected = inject_pdf_export()
-    print(f"Pages build complete: generated={generated}, pdf_export={injected}, output={SITE}")
+    topics = tuple(
+        entry for entry in PUBLISH_ENTRIES if entry not in ("assets", "download") and (SITE / entry).is_dir()
+    )
+    topic_count, article_count = build_epub_collections(SITE, topics)
+    injected = inject_export_controls(generated_pages)
+    print(f"Pages build complete: generated={len(generated_pages)}, pdf_export={injected}, "
+          f"topic_epubs={topic_count}, article_epubs={article_count}, output={SITE}")
 
 
 if __name__ == "__main__":
