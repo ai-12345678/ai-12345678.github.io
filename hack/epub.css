@@ -28,7 +28,7 @@ h1, h2, h3, h4, h5, h6 {
 h1 {
   margin: .7em 0 .4em;
   padding-top: .55em;
-  border-top: .1em solid #628a82;
+  border-top: .09em solid currentColor;
   font-size: 1.6em;
   line-height: 1.29;
 }
@@ -40,7 +40,7 @@ h2, h3, h4, h5, h6, .book-imprint, .book-source, figcaption, table {
 h2 {
   margin: 1.7em 0 .65em;
   padding-bottom: .27em;
-  border-bottom: 1px solid rgba(113, 130, 127, .4);
+  border-bottom: 1px solid #949494;
   font-size: 1.38em;
 }
 
@@ -80,7 +80,7 @@ li > p, li > ul, li > ol {
 
 a {
   color: inherit;
-  text-decoration-color: #73958b;
+  text-decoration-color: currentColor;
   text-underline-offset: .15em;
 }
 
@@ -97,7 +97,7 @@ a {
 .book-source {
   margin-top: 2em;
   padding: .7em 0;
-  border-top: 1px solid rgba(113, 130, 127, .4);
+  border-top: 1px solid #949494;
   font-size: .9em;
 }
 
@@ -108,7 +108,7 @@ a {
 blockquote {
   margin: 1em 0;
   padding: .35em 0 .35em .95em;
-  border-left: .2em solid #73958b;
+  border-left: .2em solid #777;
 }
 
 blockquote > :last-child {
@@ -118,7 +118,7 @@ blockquote > :last-child {
 hr {
   margin: 1.5em 0;
   border: 0;
-  border-top: 1px solid rgba(113, 130, 127, .4);
+  border-top: 1px solid #949494;
 }
 
 /* Keep code in normal flow so a reader can split long examples across pages. */
@@ -138,8 +138,7 @@ pre {
   box-sizing: border-box;
   max-width: 100%;
   padding: .65em .62em;
-  border-left: .2em solid #73958b;
-  background-color: rgba(118, 136, 131, .13);
+  border-left: .2em solid #777;
   font-size: .86em;
   line-height: 1.52;
   text-align: left;
@@ -215,8 +214,7 @@ figure img {
 
 .book-diagram img {
   box-sizing: border-box;
-  border: 1px solid rgba(113, 130, 127, .44);
-  background-color: #fffcf5;
+  border: 1px solid #949494;
 }
 
 figcaption {
@@ -226,11 +224,28 @@ figcaption {
   opacity: .8;
 }
 
+/* Keep tables together when they fit on a page, like other figures. */
+.book-table {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Readest adds a scroll wrapper to tables. Drop its box so page swipes work over the cells. */
+.book-table > .scroll-wrapper {
+  display: contents !important;
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* Keep the table in the reading column for pagination and native table zoom. */
 table {
+  box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   margin: 1em 0 1.5em;
   border-collapse: collapse;
+  border-top: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
   table-layout: fixed;
   font-size: .9em;
   line-height: 1.55;
@@ -244,14 +259,19 @@ table > thead:first-child > tr:first-child > th:first-child:nth-last-child(2):no
 }
 
 th, td {
-  padding: .43em .49em;
-  border-bottom: 1px solid rgba(113, 130, 127, .33);
+  padding: .38em 1%;
+  border-bottom: 1px solid #a0a0a0;
   vertical-align: top;
   white-space: normal;
   word-break: normal;
   overflow-wrap: break-word;
   overflow-wrap: anywhere;
   text-align: left;
+}
+
+/* Count preserved spaces in the cell width, including at line ends. */
+table code {
+  white-space: break-spaces !important;
 }
 
 thead {
@@ -265,12 +285,12 @@ tr {
 }
 
 thead th {
-  border-bottom-color: #73958b;
-  background-color: rgba(118, 136, 131, .19);
+  border-bottom-color: currentColor;
+  font-weight: 700;
 }
 
-tbody tr:nth-child(even) {
-  background-color: rgba(118, 136, 131, .075);
+tbody:last-child > tr:last-child > td {
+  border-bottom: 0;
 }
 
 th > p:last-child, td > p:last-child {

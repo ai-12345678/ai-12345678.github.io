@@ -18,5 +18,6 @@ local function wrap_cell_code(code)
 end
 
 function Table(tbl)
-  return tbl:walk({ Code = wrap_cell_code })
+  local wrapped = tbl:walk({ Code = wrap_cell_code })
+  return pandoc.Div({ wrapped }, pandoc.Attr("", { "book-table" }))
 end
