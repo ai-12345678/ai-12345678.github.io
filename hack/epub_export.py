@@ -6,6 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -164,6 +165,8 @@ def write_article_epub(site: Path, document: Document) -> None:
          "--metadata", f"identifier={site_url(output)}",
          "--output", str(destination)],
         input=source_html, text=True, encoding="utf-8", check=True,
+        # Pandoc uses this timestamp for the EPUB publication date.
+        env={**os.environ, "SOURCE_DATE_EPOCH": str(int(document.updated.timestamp()))},
     )
     verify_epub_chapter(destination, document)
 
