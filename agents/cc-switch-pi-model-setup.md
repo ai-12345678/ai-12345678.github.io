@@ -48,3 +48,9 @@ pi --no-session -p '只回复 OK'
 | 选中了模型，但正文为空 | 检查网关的流式响应是否在 `choices[0].delta.content` 里返回文本。设置 `supportsFinishReason: false` 后，缺少结束标记的空流也可能显示 `stop`。 |
 
 流式响应字段和兼容项的定义见 [Chat Completions 流式事件](https://developers.openai.com/api/reference/resources/chat/subresources/completions/streaming-events/) 和 [Pi 模型兼容配置](https://docs.pi.dev/latest/models-configuration#openai-completions)。
+
+## 4. 调用示例
+
+```bash
+pi --model 'newapi/GLM-5.3-Flash'
+```
