@@ -51,6 +51,15 @@ class Document:
     body: html.HtmlElement
 
 
+@dataclass
+class TopicBook:
+    topic: str
+    title: str
+    path: Path
+    article_count: int
+    updated: datetime
+
+
 def article_epub_path(page: Path) -> Path:
     return Path("epub", "articles") / page.with_suffix(".epub")
 
@@ -194,26 +203,45 @@ def verify_epub_chapters(destination: Path, documents: list[Document]) -> None:
         raise RuntimeError(f"{destination} is missing chapters: {', '.join(missing.values())}")
 
 
-def write_catalog(site: Path, books: list[tuple[str, str, Path, int]]) -> None:
+def topic_updated_at(source_root: Path, topic: str) -> datetime:
+    try:
+        timestamp = subprocess.check_output(
+            ["git", "log", "-1", "--format=%cI", "--", topic],
+            cwd=source_root, stderr=subprocess.DEVNULL, text=True,
+        ).strip()
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        timestamp = ""
+    if timestamp:
+        return datetime.fromisoformat(timestamp)
+
+    directory = source_root / topic
+    file_times = (path.stat().st_mtime for path in directory.rglob("*") if path.is_file())
+    return datetime.fromtimestamp(max(file_times, default=directory.stat().st_mtime), timezone.utc)
+
+
+def atom_timestamp(timestamp: datetime) -> str:
+    return timestamp.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def write_catalog(site: Path, books: list[TopicBook]) -> None:
     url = urljoin(SITE_URL, "opds.xml")
-    updated = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     feed = ET.Element("feed", {"xmlns": "http://www.w3.org/2005/Atom", "xml:lang": BOOK_LANGUAGE})
     ET.SubElement(feed, "id").text = url
     ET.SubElement(feed, "title").text = CATALOG_TITLE
-    ET.SubElement(feed, "updated").text = updated
+    ET.SubElement(feed, "updated").text = atom_timestamp(datetime.now(timezone.utc))
     ET.SubElement(ET.SubElement(feed, "author"), "name").text = SITE_AUTHOR
     for rel in ("self", "start"):
         ET.SubElement(feed, "link", rel=rel, href=url, type=OPDS_MEDIA_TYPE)
 
-    for topic, title, path, count in books:
-        book_url = site_url(path)
+    for book in sorted(books, key=lambda book: book.updated, reverse=True):
+        book_url = site_url(book.path)
         entry = ET.SubElement(feed, "entry")
         ET.SubElement(entry, "id").text = book_url
-        ET.SubElement(entry, "title").text = title
-        ET.SubElement(entry, "updated").text = updated
-        topic_label = TOPIC_TITLES.get(topic, topic)
-        ET.SubElement(entry, "summary", type="text").text = f"收录 {count} 篇{topic_label}文档，可以下载后离线阅读。"
-        ET.SubElement(entry, "category", term=topic, label=topic_label)
+        ET.SubElement(entry, "title").text = book.title
+        ET.SubElement(entry, "updated").text = atom_timestamp(book.updated)
+        topic_label = TOPIC_TITLES.get(book.topic, book.topic)
+        ET.SubElement(entry, "summary", type="text").text = f"收录 {book.article_count} 篇{topic_label}文档，可以下载后离线阅读。"
+        ET.SubElement(entry, "category", term=book.topic, label=topic_label)
         ET.SubElement(
             entry, "link", rel="http://opds-spec.org/acquisition/open-access", href=book_url, type="application/epub+zip",
         )
@@ -222,7 +250,7 @@ def write_catalog(site: Path, books: list[tuple[str, str, Path, int]]) -> None:
     ET.ElementTree(feed).write(site / "opds.xml", encoding="utf-8", xml_declaration=True)
 
 
-def build_epub_collections(site: Path, topic_dirs: tuple[str, ...]) -> tuple[int, int]:
+def build_epub_collections(site: Path, topic_dirs: tuple[str, ...], *, source_root: Path) -> tuple[int, int]:
     topics = {}
     for topic in topic_dirs:
         pages = sorted((site / topic).rglob("*.html"))
@@ -237,7 +265,7 @@ def build_epub_collections(site: Path, topic_dirs: tuple[str, ...]) -> tuple[int
             title = f"{TOPIC_TITLES.get(topic, topic)}专题笔记"
             output = Path("epub") / f"{topic}.epub"
             write_epub(site, output, title, documents)
-            books.append((topic, title, output, len(documents)))
+            books.append(TopicBook(topic, title, output, len(documents), topic_updated_at(source_root, topic)))
         for document in articles:
             write_epub(site, article_epub_path(document.path), document.title, [document])
 

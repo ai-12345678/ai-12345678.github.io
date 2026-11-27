@@ -255,7 +255,7 @@ def main() -> None:
     topics = tuple(
         entry for entry in PUBLISH_ENTRIES if entry not in ("assets", "download") and (SITE / entry).is_dir()
     )
-    topic_count, article_count = build_epub_collections(SITE, topics)
+    topic_count, article_count = build_epub_collections(SITE, topics, source_root=ROOT)
     injected = inject_export_controls(generated_pages)
     print(f"Pages build complete: generated={len(generated_pages)}, pdf_export={injected}, "
           f"topic_epubs={topic_count}, article_epubs={article_count}, output={SITE}")
