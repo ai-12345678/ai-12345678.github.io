@@ -12,7 +12,7 @@
 - `kubernetes/`：现有 HTML 文档及 Markdown 资料；构建时直接复制，当前不自动转换其中的 Markdown。
 - `Embodied-AI/`：已有 I2S 原始笔记，当前未加入发布范围；引用时使用有效的仓库链接，发布此目录需同步调整构建配置。
 - `hack/build-pages.py`：复制发布内容、将支持目录内的 Markdown 转为同路径 HTML。
-- `hack/epub_export.py`：为发布的专题和文章生成 EPUB，并生成 `opds.xml` 专题目录。
+- `hack/epub_export.py`：为每篇发布文档生成独立的 EPUB，并按源文件的最近一次提交时间生成 `opds.xml`。
 - `.github/workflows/pages.yml`：main 推送及手动触发的 GitHub Pages 构建部署。
 - `requirements.txt`：Python Markdown 依赖。
 - `_site/`：生成的发布产物，已忽略，不手动编辑或提交。

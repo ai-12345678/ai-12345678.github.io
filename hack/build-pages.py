@@ -6,7 +6,7 @@ Rules:
 - Keep hand-written Kubernetes HTML unchanged.
 - Generate a sibling HTML page for every Markdown file under linux/, agents/, lang/, golang/, models/, network/, asm/, speech/, webrtc/, cpp/, and tcp/.
 - Keep the original Markdown files available for download.
-- Export documentation as topic and article EPUBs, and list the topics in opds.xml.
+- Export each document as its own EPUB, and list the articles in opds.xml.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from urllib.parse import quote
 
 import markdown
 
-from epub_export import article_epub_path, build_epub_collections
+from epub_export import article_epub_path, build_article_epubs
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "_site"
@@ -233,7 +233,7 @@ def main() -> None:
     SITE.mkdir(parents=True)
     copy_publish_entries()
 
-    generated_pages = set()
+    generated_pages = {}
     for content_dir in CONTENT_DIRS:
         for md_path in content_dir.rglob("*.md"):
             rel = md_path.relative_to(ROOT)
@@ -250,15 +250,18 @@ def main() -> None:
             output_html.write_text(
                 render_page(title, body, md_path.name, output_html), encoding="utf-8"
             )
-            generated_pages.add(output_html)
+            generated_pages[output_html] = md_path
 
-    topics = tuple(
-        entry for entry in PUBLISH_ENTRIES if entry not in ("assets", "download") and (SITE / entry).is_dir()
-    )
-    topic_count, article_count = build_epub_collections(SITE, topics, source_root=ROOT)
-    injected = inject_export_controls(generated_pages)
+    document_sources = {
+        page: generated_pages.get(page, ROOT / page.relative_to(SITE))
+        for entry in PUBLISH_ENTRIES
+        if entry not in ("assets", "download") and (SITE / entry).is_dir()
+        for page in (SITE / entry).rglob("*.html")
+    }
+    article_count = build_article_epubs(SITE, document_sources, source_root=ROOT)
+    injected = inject_export_controls(set(generated_pages))
     print(f"Pages build complete: generated={len(generated_pages)}, pdf_export={injected}, "
-          f"topic_epubs={topic_count}, article_epubs={article_count}, output={SITE}")
+          f"article_epubs={article_count}, output={SITE}")
 
 
 if __name__ == "__main__":

@@ -23,22 +23,8 @@ SITE_URL = "https://ai-12345678.github.io/"
 SITE_HOST = urlsplit(SITE_URL).netloc
 SITE_AUTHOR = "ai-12345678"
 BOOK_LANGUAGE = "zh-Hans"
-CATALOG_TITLE = "技术学习文档站 · 专题电子书"
+CATALOG_TITLE = "技术学习笔记 · 电子书目录"
 OPDS_MEDIA_TYPE = "application/atom+xml;profile=opds-catalog;kind=acquisition"
-TOPIC_TITLES = {
-    "agents": "AI Agent 与开发工具",
-    "asm": "汇编语言",
-    "cpp": "C++",
-    "golang": "Go",
-    "kubernetes": "Kubernetes",
-    "lang": "编程语言与对象模型",
-    "linux": "Linux",
-    "models": "AI、DSP 与算法",
-    "network": "网络技术",
-    "speech": "语音与音频",
-    "tcp": "TCP",
-    "webrtc": "WebRTC",
-}
 
 
 @dataclass
@@ -49,14 +35,6 @@ class Document:
     chapter_id: str
     anchors: dict[str, str]
     body: html.HtmlElement
-
-
-@dataclass
-class TopicBook:
-    topic: str
-    title: str
-    path: Path
-    article_count: int
     updated: datetime
 
 
@@ -68,7 +46,7 @@ def site_url(path: Path) -> str:
     return urljoin(SITE_URL, quote(path.as_posix()))
 
 
-def read_document(page: Path, site: Path) -> Document:
+def read_document(page: Path, site: Path, updated: datetime) -> Document:
     path = page.relative_to(site)
     url = site_url(path)
     tree = html.document_fromstring(page.read_text(encoding="utf-8"))
@@ -107,7 +85,7 @@ def read_document(page: Path, site: Path) -> Document:
     for media in body.xpath(".//audio[@src] | .//video[@src]"):
         replace_with_link(media, media.get("src"), "试听音频" if media.tag == "audio" else "播放视频")
 
-    return Document(path, url, title, chapter_id, anchors, body)
+    return Document(path, url, title, chapter_id, anchors, body, updated)
 
 
 def replace_with_link(element: html.HtmlElement, href: str, label: str) -> None:
@@ -157,56 +135,53 @@ def render_diagrams(documents: list[Document], work: Path) -> None:
     print(f"Rendered Mermaid diagrams: {rendered}/{len(diagrams)}")
 
 
-def write_epub(site: Path, output: Path, title: str, documents: list[Document]) -> None:
-    by_url = {document.url: document for document in documents}
-    book_body = html.Element("body")
-    for document in documents:
-        body = deepcopy(document.body)
-        for link in body.xpath(".//a[@href]"):
-            href = urljoin(document.url, link.get("href"))
-            parts = urlsplit(href)
-            target = by_url.get(parts._replace(query="", fragment="").geturl())
-            if target is not None and not parts.query:
-                anchor = target.anchors.get(unquote(parts.fragment)) if parts.fragment else target.chapter_id
-                if anchor:
-                    href = f"#{anchor}"
-            link.set("href", href)
-        source = etree.SubElement(etree.SubElement(body, "p"), "a", href=document.url)
-        source.text = "阅读网页原文"
-        book_body.append(body)
-        body.drop_tag()
+def write_article_epub(site: Path, document: Document) -> None:
+    body = deepcopy(document.body)
+    for link in body.xpath(".//a[@href]"):
+        href = urljoin(document.url, link.get("href"))
+        parts = urlsplit(href)
+        if parts._replace(fragment="").geturl() == document.url:
+            anchor = document.anchors.get(unquote(parts.fragment)) if parts.fragment else document.chapter_id
+            if anchor:
+                href = f"#{anchor}"
+        link.set("href", href)
+    source = etree.SubElement(etree.SubElement(body, "p"), "a", href=document.url)
+    source.text = "阅读网页原文"
 
+    book_body = html.Element("body")
+    book_body.append(body)
+    body.drop_tag()
+
+    output = article_epub_path(document.path)
     destination = site / output
     destination.parent.mkdir(parents=True, exist_ok=True)
     source_html = f'<!doctype html><html lang="{BOOK_LANGUAGE}">{html.tostring(book_body, encoding="unicode")}</html>'
     subprocess.run(
         ["pandoc", "--from=html+tex_math_single_backslash", "--to=epub3", "--toc", "--toc-depth=3",
          "--mathml", "--epub-title-page=false", "--css", str(Path(__file__).with_name("epub.css")),
-         "--metadata", f"title={title}", "--metadata", f"author={SITE_AUTHOR}",
+         "--metadata", f"title={document.title}", "--metadata", f"author={SITE_AUTHOR}",
          "--metadata", f"lang={BOOK_LANGUAGE}", "--metadata", "toc-title=目录",
          "--metadata", f"identifier={site_url(output)}",
          "--output", str(destination)],
         input=source_html, text=True, encoding="utf-8", check=True,
     )
-    verify_epub_chapters(destination, documents)
+    verify_epub_chapter(destination, document)
 
 
-def verify_epub_chapters(destination: Path, documents: list[Document]) -> None:
-    missing = {document.chapter_id: document.title for document in documents}
+def verify_epub_chapter(destination: Path, document: Document) -> None:
     with ZipFile(destination) as book:
         for name in book.namelist():
             if name.endswith(".xhtml"):
                 chapter = ET.fromstring(book.read(name))
-                for element in chapter.findall(".//*[@id]"):
-                    missing.pop(element.attrib["id"], None)
-    if missing:
-        raise RuntimeError(f"{destination} is missing chapters: {', '.join(missing.values())}")
+                if chapter.find(f".//*[@id='{document.chapter_id}']") is not None:
+                    return
+    raise RuntimeError(f"{destination} is missing the article: {document.title}")
 
 
-def topic_updated_at(source_root: Path, topic: str) -> datetime:
+def document_updated_at(source_root: Path, source: Path) -> datetime:
     try:
         timestamp = subprocess.check_output(
-            ["git", "log", "-1", "--format=%cI", "--", topic],
+            ["git", "--literal-pathspecs", "log", "-1", "--format=%cI", "--", source.relative_to(source_root).as_posix()],
             cwd=source_root, stderr=subprocess.DEVNULL, text=True,
         ).strip()
     except (FileNotFoundError, subprocess.CalledProcessError):
@@ -214,60 +189,54 @@ def topic_updated_at(source_root: Path, topic: str) -> datetime:
     if timestamp:
         return datetime.fromisoformat(timestamp)
 
-    directory = source_root / topic
-    file_times = (path.stat().st_mtime for path in directory.rglob("*") if path.is_file())
-    return datetime.fromtimestamp(max(file_times, default=directory.stat().st_mtime), timezone.utc)
+    return datetime.fromtimestamp(source.stat().st_mtime, timezone.utc)
 
 
 def atom_timestamp(timestamp: datetime) -> str:
     return timestamp.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-def write_catalog(site: Path, books: list[TopicBook]) -> None:
+def write_catalog(site: Path, articles: list[Document]) -> None:
     url = urljoin(SITE_URL, "opds.xml")
+    ordered = sorted(articles, key=lambda article: article.updated, reverse=True)
+    updated = ordered[0].updated if ordered else datetime.now(timezone.utc)
     feed = ET.Element("feed", {"xmlns": "http://www.w3.org/2005/Atom", "xml:lang": BOOK_LANGUAGE})
     ET.SubElement(feed, "id").text = url
     ET.SubElement(feed, "title").text = CATALOG_TITLE
-    ET.SubElement(feed, "updated").text = atom_timestamp(datetime.now(timezone.utc))
+    ET.SubElement(feed, "updated").text = atom_timestamp(updated)
     ET.SubElement(ET.SubElement(feed, "author"), "name").text = SITE_AUTHOR
     for rel in ("self", "start"):
         ET.SubElement(feed, "link", rel=rel, href=url, type=OPDS_MEDIA_TYPE)
 
-    for book in sorted(books, key=lambda book: book.updated, reverse=True):
-        book_url = site_url(book.path)
+    for article in ordered:
+        book_url = site_url(article_epub_path(article.path))
         entry = ET.SubElement(feed, "entry")
         ET.SubElement(entry, "id").text = book_url
-        ET.SubElement(entry, "title").text = book.title
-        ET.SubElement(entry, "updated").text = atom_timestamp(book.updated)
-        topic_label = TOPIC_TITLES.get(book.topic, book.topic)
-        ET.SubElement(entry, "summary", type="text").text = f"收录 {book.article_count} 篇{topic_label}文档，可以下载后离线阅读。"
-        ET.SubElement(entry, "category", term=book.topic, label=topic_label)
+        ET.SubElement(entry, "title").text = article.title
+        ET.SubElement(entry, "updated").text = atom_timestamp(article.updated)
+        paragraph = article.body.find(".//p")
+        if paragraph is not None:
+            summary = " ".join(paragraph.text_content().split())
+            if summary and summary != article.title:
+                ET.SubElement(entry, "summary", type="text").text = summary[:239] + "…" if len(summary) > 240 else summary
         ET.SubElement(
             entry, "link", rel="http://opds-spec.org/acquisition/open-access", href=book_url, type="application/epub+zip",
         )
+        ET.SubElement(entry, "link", rel="alternate", href=article.url, type="text/html")
 
     ET.indent(feed)
     ET.ElementTree(feed).write(site / "opds.xml", encoding="utf-8", xml_declaration=True)
 
 
-def build_epub_collections(site: Path, topic_dirs: tuple[str, ...], *, source_root: Path) -> tuple[int, int]:
-    topics = {}
-    for topic in topic_dirs:
-        pages = sorted((site / topic).rglob("*.html"))
-        if pages:
-            topics[topic] = [read_document(page, site) for page in pages]
-
-    books = []
-    articles = [document for documents in topics.values() for document in documents]
+def build_article_epubs(site: Path, sources: dict[Path, Path], *, source_root: Path) -> int:
+    articles = [
+        read_document(page, site, document_updated_at(source_root, source))
+        for page, source in sorted(sources.items())
+    ]
     with TemporaryDirectory(prefix="blog-epub-") as work:
         render_diagrams(articles, Path(work))
-        for topic, documents in topics.items():
-            title = f"{TOPIC_TITLES.get(topic, topic)}专题笔记"
-            output = Path("epub") / f"{topic}.epub"
-            write_epub(site, output, title, documents)
-            books.append(TopicBook(topic, title, output, len(documents), topic_updated_at(source_root, topic)))
-        for document in articles:
-            write_epub(site, article_epub_path(document.path), document.title, [document])
+        for article in articles:
+            write_article_epub(site, article)
 
-    write_catalog(site, books)
-    return len(books), len(articles)
+    write_catalog(site, articles)
+    return len(articles)
